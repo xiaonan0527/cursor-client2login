@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Cursor Client2Login",
+  "version": "1.0.0",
+  "description": "管理Cursor认证信息的Chrome插件",
+  
+  "permissions": [
+    "storage",
+    "cookies",
+    "tabs",
+    "nativeMessaging",
+    "activeTab"
+  ],
+  
+  "host_permissions": [
+    "https://www.cursor.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Cursor Client2Login"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["https://www.cursor.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["native-host.py", "install-guide.md"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+} 

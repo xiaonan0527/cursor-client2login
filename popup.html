@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor Client2Login</title>
+    <style>
+        body {
+            width: 420px;
+            min-height: 600px;
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #fff;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            height: 80px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #4CAF50;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        
+        .btn-info {
+            background: #2196F3;
+        }
+        
+        .btn-info:hover {
+            background: #0b7dda;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .btn-warning {
+            background: #ff9800;
+        }
+        
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+        
+        .message {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .message.success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid #4CAF50;
+        }
+        
+        .message.error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid #f44336;
+        }
+        
+        .message.info {
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid #2196F3;
+        }
+        
+        .message.warning {
+            background: rgba(255, 152, 0, 0.3);
+            border: 1px solid #ff9800;
+        }
+        
+        .account-list {
+            max-height: 150px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+        }
+        
+        .account-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            min-height: 60px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .account-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .account-item.current-account {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.3) 0%, rgba(56, 142, 60, 0.3) 100%);
+            border: 3px solid #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.4), inset 0 0 10px rgba(76, 175, 80, 0.2);
+            position: relative;
+            transform: translateY(-2px);
+        }
+        
+        .account-item.current-account::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #4CAF50, #81C784, #4CAF50, #66BB6A);
+            background-size: 400% 400%;
+            border-radius: 8px;
+            z-index: -1;
+            animation: gradientShift 3s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .account-info {
+            flex: 1;
+            margin-right: 8px;
+            overflow: hidden;
+        }
+        
+        .account-email {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        
+        .account-item.current-account .account-email {
+            font-weight: 700;
+            font-size: 14px;
+            color: #E8F5E8;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .account-userid {
+            font-size: 10px;
+            opacity: 0.8;
+            word-break: break-all;
+        }
+        
+        .account-item.current-account .account-userid {
+            opacity: 0.9;
+            color: #E8F5E8;
+            font-weight: 500;
+        }
+        
+        .account-actions {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+            max-width: 110px;
+        }
+        
+        .current-account-badge {
+            background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .btn-small {
+            padding: 3px 6px;
+            font-size: 11px;
+            width: auto;
+            margin-bottom: 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            max-width: 50px;
+        }
+        
+        .btn-small.btn-info {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-small.btn-info:hover {
+            background: #1976D2;
+        }
+        
+        .btn-small.btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        
+        .btn-small.btn-danger:hover {
+            background: #d32f2f;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .file-drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .file-drop-zone:hover {
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .file-drop-zone.dragover {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .method-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 4px;
+        }
+        
+        .method-tab {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .method-tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .method-content {
+            display: none;
+        }
+        
+        .method-content.active {
+            display: block;
+        }
+        
+        .file-path-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        .current-status {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.25) 0%, rgba(56, 142, 60, 0.25) 100%);
+            border: 2px solid #4CAF50;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .current-status::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .current-status:hover::before {
+            left: 100%;
+        }
+        
+        .current-status.no-account {
+            background: linear-gradient(135deg, rgba(158, 158, 158, 0.25) 0%, rgba(117, 117, 117, 0.25) 100%);
+            border-color: #9E9E9E;
+            box-shadow: 0 4px 12px rgba(158, 158, 158, 0.3);
+        }
+        
+        .status-icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .status-title {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        
+        .status-email {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 2px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-userid {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+                        <h1>🎯 Cursor Client2Login</h1>
+        
+        <!-- 当前账户状态显示 -->
+        <div id="currentStatus" class="current-status no-account">
+            <span class="status-icon">👤</span>
+            <div class="status-title">当前账户</div>
+            <div class="status-email">未登录</div>
+            <div class="status-userid">请先导入账户</div>
+        </div>
+        
+        <!-- 消息显示区域 -->
+        <div id="messageArea"></div>
+        
+        <!-- 导入方法选择 -->
+        <div class="section">
+            <h3>📥 导入认证数据</h3>
+            <div class="method-tabs">
+                <button class="method-tab active" data-method="auto">🤖 自动读取</button>
+                <button class="method-tab" data-method="file">📁 文件上传</button>
+                <button class="method-tab" data-method="manual">✋ 手动输入</button>
+            </div>
+            
+            <!-- 自动读取方法 -->
+            <div class="method-content active" id="autoMethod">
+                <div class="message info">
+                    <strong>自动读取模式：</strong><br>
+                    插件将尝试通过原生主机程序自动读取Cursor的本地数据库和配置文件。
+                </div>
+                <button id="autoReadBtn" class="btn-success">🔍 自动读取Cursor数据</button>
+                <div id="nativeHostInfo" class="hidden">
+                    <div class="message warning">
+                        <strong>需要安装原生主机程序：</strong><br>
+                        1. 下载插件文件夹中的安装脚本<br>
+                        2. 运行: <span class="code">python3 install-native-host.py install</span><br>
+                        3. 重启Chrome浏览器<br>
+                        <a href="#" id="showInstallGuide" style="color: #fff; text-decoration: underline;">查看详细安装说明</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 文件上传方法 -->
+            <div class="method-content" id="fileMethod">
+                <div class="file-path-info">
+                    <strong>📁 文件位置：</strong><br>
+                    <strong>macOS:</strong> <span class="code">~/Library/Application Support/Cursor/sentry/scope_v3.json</span><br>
+                    <strong>Windows:</strong> <span class="code">%APPDATA%\Cursor\sentry\scope_v3.json</span>
+                </div>
+                <div class="input-group">
+                    <label>上传 scope_v3.json 文件:</label>
+                    <div class="file-drop-zone" id="jsonDropZone">
+                        <p>📄 拖拽 scope_v3.json 文件到这里<br>或点击选择文件</p>
+                        <input type="file" id="jsonFileInput" class="file-input" accept=".json">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="accessTokenFile">手动输入 Access Token:</label>
+                    <textarea id="accessTokenFile" placeholder="请输入从Cursor数据库中获取的accessToken"></textarea>
+                    <div class="file-path-info">
+                        <strong>💾 数据库位置：</strong><br>
+                        <strong>macOS:</strong> <span class="code">~/Library/Application Support/Cursor/User/globalStorage/state.vscdb</span><br>
+                        <strong>Windows:</strong> <span class="code">%APPDATA%\Cursor\User\globalStorage\state.vscdb</span><br>
+                        <strong>查询SQL:</strong> <span class="code">SELECT value FROM itemTable WHERE key = 'cursorAuth/accessToken';</span>
+                    </div>
+                </div>
+                <button id="processFilesBtn" class="btn-success">📋 处理文件数据</button>
+            </div>
+            
+            <!-- 手动输入方法 -->
+            <div class="method-content" id="manualMethod">
+                <div class="input-group">
+                    <label for="emailInput">Email地址:</label>
+                    <input type="email" id="emailInput" placeholder="请输入email地址">
+                </div>
+                <div class="input-group">
+                    <label for="useridInput">User ID:</label>
+                    <input type="text" id="useridInput" placeholder="请输入userid (|符号后的部分)">
+                </div>
+                <div class="input-group">
+                    <label for="accessTokenInput">Access Token:</label>
+                    <textarea id="accessTokenInput" placeholder="请输入accessToken"></textarea>
+                </div>
+                <button id="importDataBtn">💾 导入并设置认证</button>
+            </div>
+        </div>
+        
+        <!-- 已保存账户列表 -->
+        <div class="section">
+            <h3>👥 已保存的账户</h3>
+            <div id="accountList" class="account-list">
+                <div class="loading">加载中...</div>
+            </div>
+            <button id="refreshAccountsBtn" class="btn-info">🔄 刷新账户列表</button>
+        </div>
+        
+        <!-- 快速操作 -->
+        <div class="section">
+            <h3>⚡ 快速操作</h3>
+            <button id="openDashboardBtn" class="btn-info">🚀 打开Cursor Dashboard</button>
+            <button id="clearDataBtn" class="btn-danger">🗑️ 清空所有数据</button>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html> 
