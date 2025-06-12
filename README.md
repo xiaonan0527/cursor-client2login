@@ -22,6 +22,8 @@
 - **✋ 手动输入** - 手动填写认证信息
 - **🔄 多账户管理** - 保存和快速切换多个Cursor账户
 - **🎯 一键登录** - 自动设置Cookie并跳转到Dashboard
+- **🍪 智能Cookie状态验证与恢复** - 实时检测Cookie状态（过期/清除）并提供一键恢复
+- **🔒 CSP安全合规** - 移除内联脚本，完全符合Chrome扩展内容安全策略
 
 ### 🛠️ 技术特性
 - **跨平台支持** - 完全(bushi)支持Windows、macOS、Linux(目前只测试了macOS ,Windows没有机器，我就没有测试)
@@ -321,6 +323,13 @@ python3 update_native_host.py <extension-id>
 - ✅ 支持拖拽文件上传
 - ✅ 跨平台支持（Windows、macOS、Linux）
 - ✅ 智能错误诊断和修复提示
+
+### 🆕 更新日志
+
+| 版本 | 日期 | 关键更新 |
+|------|------|-----------|
+| 1.1.0 | 2025-06-12 | 1) 修复CSP违规，移除内联事件处理器<br>2) manifest.json 新增 cursor.com / *.cursor.com Host 权限<br>3) 新增智能 Cookie 恢复按钮，自动从 storage 或原生主机获取 token 并重写 Cookie<br>4) 移除调试按钮，界面更简洁 |
+| 1.0.0 | 2025-06-10 | 初始版本，支持自动读取、文件上传、手动输入及多账户管理 |
 
 ## 📄 许可证
 
