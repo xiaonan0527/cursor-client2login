@@ -13,13 +13,13 @@ let uploadedJsonData = null;
 
 // 测试原生消息传递函数
 function testNativeMessaging() {
-  const NATIVE_HOST_NAME = 'com.cursor.get.account';
+  const NATIVE_HOST_NAME = 'com.cursor.client.manage';
   
   console.log('🧪 测试原生消息传递...');
   console.log('扩展ID:', chrome.runtime.id);
   console.log('原生主机名称:', NATIVE_HOST_NAME);
   
-  chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: 'getAllData' }, (response) => {
+      chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: 'getClientCurrentData' }, (response) => {
     const lastError = chrome.runtime.lastError;
     
     if (lastError) {

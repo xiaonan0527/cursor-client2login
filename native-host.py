@@ -125,7 +125,7 @@ def main():
             response = read_access_token()
         elif action == "getScopeData":
             response = read_scope_json()
-        elif action == "getAllData":
+        elif action == "getClientCurrentData":
             # 获取所有数据
             token_result = read_access_token()
             scope_result = read_scope_json()

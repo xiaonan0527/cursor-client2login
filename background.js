@@ -1,5 +1,5 @@
 // 原生消息主机配置
-const NATIVE_HOST_NAME = 'com.cursor.get.account';
+const NATIVE_HOST_NAME = 'com.cursor.client.manage';
 
 // 安装时的初始化
 chrome.runtime.onInstalled.addListener(() => {
@@ -37,7 +37,7 @@ async function autoReadCursorData() {
     // 方法1: 尝试使用原生消息传递
     try {
       console.log('尝试连接原生主机:', NATIVE_HOST_NAME);
-      const nativeResult = await sendNativeMessage({ action: 'getAllData' });
+              const nativeResult = await sendNativeMessage({ action: 'getClientCurrentData' });
       console.log('原生主机响应:', nativeResult);
       
       if (nativeResult && !nativeResult.error) {
