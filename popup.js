@@ -13,7 +13,7 @@ let uploadedJsonData = null;
 
 // 测试原生消息传递函数
 function testNativeMessaging() {
-  const NATIVE_HOST_NAME = 'com.cursor.auth.manager';
+  const NATIVE_HOST_NAME = 'com.cursor.get.account';
   
   console.log('🧪 测试原生消息传递...');
   console.log('扩展ID:', chrome.runtime.id);

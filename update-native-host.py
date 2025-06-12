@@ -22,7 +22,7 @@ def update_native_host_manifest(extension_id=None):
     """更新原生主机清单文件"""
     try:
         host_dir = get_chrome_native_host_dir()
-        manifest_path = os.path.join(host_dir, "com.cursor.auth.manager.json")
+        manifest_path = os.path.join(host_dir, "com.cursor.get.account.json")
         
         if not os.path.exists(manifest_path):
             print("❌ 原生主机清单文件不存在，请先运行安装命令")

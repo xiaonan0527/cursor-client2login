@@ -1,5 +1,5 @@
 {
-  "name": "com.cursor.auth.manager",
+  "name": "com.cursor.get.account",
   "description": "Cursor Client2Login Native Host",
   "path": "/path/to/native-host.py",
   "type": "stdio",

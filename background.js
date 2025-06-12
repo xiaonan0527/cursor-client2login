@@ -1,5 +1,5 @@
 // 原生消息主机配置
-const NATIVE_HOST_NAME = 'com.cursor.auth.manager';
+const NATIVE_HOST_NAME = 'com.cursor.get.account';
 
 // 安装时的初始化
 chrome.runtime.onInstalled.addListener(() => {

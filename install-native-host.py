@@ -38,7 +38,7 @@ def get_chrome_native_host_dir():
 def create_native_host_manifest(host_dir, script_path):
     """创建原生主机清单文件"""
     manifest = {
-        "name": "com.cursor.auth.manager",
+        "name": "com.cursor.get.account",
         "description": "Cursor Client2Login Native Host",
         "path": str(script_path),
         "type": "stdio",
@@ -46,8 +46,8 @@ def create_native_host_manifest(host_dir, script_path):
             "chrome-extension://*/"  # 允许所有扩展
         ]
     }
-    
-    manifest_path = os.path.join(host_dir, "com.cursor.auth.manager.json")
+
+    manifest_path = os.path.join(host_dir, "com.cursor.get.account.json")
     
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(manifest, f, indent=2)
@@ -127,7 +127,7 @@ def install_windows_registry(manifest_path):
         import winreg
         
         # 创建注册表项
-        key_path = r"SOFTWARE\Google\Chrome\NativeMessagingHosts\com.cursor.auth.manager"
+        key_path = r"SOFTWARE\Google\Chrome\NativeMessagingHosts\com.cursor.get.account"
         
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
             winreg.SetValueEx(key, "", 0, winreg.REG_SZ, manifest_path)
@@ -136,7 +136,7 @@ def install_windows_registry(manifest_path):
         
     except ImportError:
         print("⚠️  无法导入winreg模块，请手动添加注册表项")
-        print(f"   路径: HKEY_CURRENT_USER\\SOFTWARE\\Google\\Chrome\\NativeMessagingHosts\\com.cursor.auth.manager")
+        print(f"   路径: HKEY_CURRENT_USER\\SOFTWARE\\Google\\Chrome\\NativeMessagingHosts\\com.cursor.get.account")
         print(f"   值: {manifest_path}")
     except Exception as e:
         print(f"⚠️  添加注册表项失败: {e}")
@@ -153,7 +153,7 @@ def uninstall_native_host():
         files_to_remove = [
             os.path.join(host_dir, "native-host.py"),
             os.path.join(host_dir, "native-host.exe"),
-            os.path.join(host_dir, "com.cursor.auth.manager.json")
+            os.path.join(host_dir, "com.cursor.get.account.json")
         ]
         
         for file_path in files_to_remove:
@@ -166,7 +166,7 @@ def uninstall_native_host():
         if system == "windows":
             try:
                 import winreg
-                key_path = r"SOFTWARE\Google\Chrome\NativeMessagingHosts\com.cursor.auth.manager"
+                key_path = r"SOFTWARE\Google\Chrome\NativeMessagingHosts\com.cursor.get.account"
                 winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key_path)
                 print("🗑️  已删除注册表项")
             except:
