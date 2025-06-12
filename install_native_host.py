@@ -62,10 +62,10 @@ def install_native_host():
         
         # 获取当前脚本目录
         current_dir = Path(__file__).parent.absolute()
-        native_host_script = current_dir / "native-host.py"
+        native_host_script = current_dir / "native_host.py"
         
         if not native_host_script.exists():
-            raise Exception(f"找不到native-host.py文件: {native_host_script}")
+            raise Exception(f"找不到native_host.py文件: {native_host_script}")
         
         # 获取Chrome原生主机目录
         host_dir = get_chrome_native_host_dir()
@@ -79,12 +79,12 @@ def install_native_host():
         if system == "windows":
             # Windows可能需要.exe或.bat包装器，但这里我们使用python直接路径
             python_executable = sys.executable
-            target_script = os.path.join(host_dir, "native-host.py")
+            target_script = os.path.join(host_dir, "native_host.py")
             shutil.copy2(native_host_script, target_script)
             # 在Windows上，我们需要在manifest中使用python解释器的完整路径
             script_path_for_manifest = f'"{python_executable}" "{target_script}"'
         else:
-            target_script = os.path.join(host_dir, "native-host.py")
+            target_script = os.path.join(host_dir, "native_host.py")
             shutil.copy2(native_host_script, target_script)
             script_path_for_manifest = target_script
         
@@ -151,8 +151,8 @@ def uninstall_native_host():
         
         # 删除文件
         files_to_remove = [
-            os.path.join(host_dir, "native-host.py"),
-            os.path.join(host_dir, "native-host.exe"),
+            os.path.join(host_dir, "native_host.py"),
+            os.path.join(host_dir, "native_host.exe"),
             os.path.join(host_dir, "com.cursor.client.manage.json")
         ]
         
@@ -185,12 +185,12 @@ def test_native_host():
     try:
         print("🧪 测试原生主机连接...")
         
-        # 尝试直接运行native-host.py脚本
+        # 尝试直接运行native_host.py脚本
         current_dir = Path(__file__).parent.absolute()
-        native_host_script = current_dir / "native-host.py"
+        native_host_script = current_dir / "native_host.py"
         
         if not native_host_script.exists():
-            print(f"❌ 找不到native-host.py文件: {native_host_script}")
+            print(f"❌ 找不到native_host.py文件: {native_host_script}")
             return False
         
         # 创建测试消息
@@ -249,9 +249,9 @@ def main():
     if len(sys.argv) < 2:
         print("Cursor Client2Login 原生主机安装工具")
         print("\n使用方法:")
-        print("  python install-native-host.py install   # 安装原生主机")
-        print("  python install-native-host.py uninstall # 卸载原生主机")
-        print("  python install-native-host.py test      # 测试原生主机")
+        print("  python install_native_host.py install   # 安装原生主机")
+        print("  python install_native_host.py uninstall # 卸载原生主机")
+        print("  python install_native_host.py test      # 测试原生主机")
         return
     
     action = sys.argv[1].lower()

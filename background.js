@@ -148,7 +148,7 @@ function sendNativeMessage(message) {
             hostName: NATIVE_HOST_NAME,
             timestamp: new Date().toISOString(),
             troubleshooting: [
-              '1. 确保已运行 python3 install-native-host.py',
+              '1. 确保已运行 python3 install_native_host.py',
               '2. 重启 Chrome 浏览器',
               '3. 检查原生主机配置文件是否存在',
               '4. 尝试使用具体扩展ID更新配置'

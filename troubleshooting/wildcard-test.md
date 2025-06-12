@@ -52,7 +52,7 @@
 ## 🔄 快速切换回具体ID
 如果通配符模式失败，可以快速切换回具体扩展ID：
 ```bash
-python3 update-native-host.py abcdefghijklmnopqrstuvwxyz123456
+python3 update_native_host.py abcdefghijklmnopqrstuvwxyz123456
 ```
 
 ## 💡 技术说明

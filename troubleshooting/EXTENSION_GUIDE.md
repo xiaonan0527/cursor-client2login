@@ -12,7 +12,7 @@
 
 ## 🏗️ 架构概述
 
-重构后的 `native-host.py` 采用了面向对象的设计模式：
+重构后的 `native_host.py` 采用了面向对象的设计模式：
 
 ### 核心组件
 
@@ -84,7 +84,7 @@ class YourNewHandler(BaseActionHandler):
 
 有两种方式注册新的处理器：
 
-#### 方式 1: 修改 native-host.py
+#### 方式 1: 修改 native_host.py
 
 在 `NativeHostServer._register_default_handlers()` 方法中添加：
 
@@ -101,13 +101,9 @@ def _register_default_handlers(self):
 
 #### 方式 2: 创建扩展文件（推荐）
 
-由于 `native-host.py` 使用破折号命名，Python 无法直接导入。有两种解决方案：
 
 **方案 A: 重命名文件**
-```bash
-# 将 native-host.py 重命名为 native_host.py
-mv native-host.py native_host.py
-```
+
 
 然后创建扩展文件 `my_extensions.py`：
 
@@ -130,9 +126,9 @@ if __name__ == "__main__":
     server.run()
 ```
 
-**方案 B: 在 native-host.py 末尾直接添加**
+**方案 B: 在 native_host.py 末尾直接添加**
 ```python
-# 在 native-host.py 文件末尾添加您的处理器类
+# 在 native_host.py 文件末尾添加您的处理器类
 
 class YourNewHandler(BaseActionHandler):
     def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:

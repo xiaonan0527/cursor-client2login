@@ -37,7 +37,7 @@ Chrome的原生消息传递API有以下限制：
 
 **始终使用具体扩展ID**：
 ```bash
-python3 update-native-host.py abcdefghijklmnopqrstuvwxyz123456
+python3 update_native_host.py abcdefghijklmnopqrstuvwxyz123456
 ```
 
 通配符模式理论上很吸引人，但在实际应用中不可靠。具体扩展ID虽然需要手动配置，但是稳定可靠的解决方案。

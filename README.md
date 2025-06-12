@@ -88,11 +88,11 @@ graph TD
 
 3. **安装原生主机**(推荐)
    ```bash
-   # macOS/Linux
-   python3 install-native-host.py install
+       # macOS/Linux
+    python3 install_native_host.py install
    
    # Windows
-   python install-native-host.py install
+   python install_native_host.py install
    ```
 
 4. **更新原生主机配置扩展ID**
@@ -102,10 +102,10 @@ graph TD
    - 运行命令更新配置：
    ```bash
    # macOS/Linux
-   python3 update-native-host.py YOUR_EXTENSION_ID
+   python3 update_native_host.py YOUR_EXTENSION_ID
    
    # Windows
-   python update-native-host.py YOUR_EXTENSION_ID
+   python update_native_host.py YOUR_EXTENSION_ID
    ```
    ![Chrome扩展管理页面 - 获取扩展ID](./assets/images/extension-id-guide.png)
 
@@ -178,10 +178,10 @@ cursor-client2login/
 ├── 🎨 popup.html            # 弹出窗口页面
 ├── ⚡ popup.js              # 弹出窗口逻辑
 ├── 📝 content.js            # 内容脚本
-├── 🐍 native-host.py        # 原生主机程序
-├── 🛠️ install-native-host.py # 原生主机安装器
-├── 📋 native-host.json      # 原生主机配置模板
-├── 🔄 update-native-host.py # 配置更新工具
+├── 🐍 native_host.py        # 原生主机程序
+├── 🛠️ install_native_host.py # 原生主机安装器
+├── 📋 native_host.json      # 原生主机配置模板
+├── 🔄 update_native_host.py # 配置更新工具
 └── 🔧 troubleshooting/      # 故障排除文档
     ├── diagnose.md          # 诊断指南
     ├── fix-steps.md         # 修复步骤
@@ -204,7 +204,7 @@ cursor-client2login/
 3. 检查Python是否正确安装
 4. 使用具体扩展ID更新配置：
    ```bash
-   python3 update-native-host.py <your-extension-id>
+   python3 update_native_host.py <your-extension-id>
    ```
 </details>
 
@@ -215,7 +215,7 @@ cursor-client2login/
 1. 确保Cursor已安装并至少登录过一次
 2. 检查文件权限：
    ```bash
-   chmod +x native-host.py
+   chmod +x native_host.py
    ```
 3. 查看Chrome扩展控制台错误信息
 </details>
@@ -270,7 +270,7 @@ cursor-client2login/
 2. **安装依赖**
    ```bash
    # 安装原生主机
-   python3 install-native-host.py install
+   python3 install_native_host.py install
    ```
 
 3. **加载到Chrome**
@@ -285,10 +285,10 @@ cursor-client2login/
 
 ```bash
 # 测试原生主机程序
-python3 native-host.py
+python3 native_host.py
 
 # 测试特定扩展ID配置
-python3 update-native-host.py <extension-id>
+python3 update_native_host.py <extension-id>
 ```
 
 ## 🤝 贡献

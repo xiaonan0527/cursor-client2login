@@ -21,12 +21,12 @@
 1. 在Chrome中打开 `chrome://extensions/`
 2. 找到"Cursor Client2Login"扩展
 3. 复制扩展ID（类似：`abcdefghijklmnopqrstuvwxyz123456`）
-4. 运行命令：`python3 update-native-host.py <扩展ID>`
+4. 运行命令：`python3 update_native_host.py <扩展ID>`
 
 ### 3. 🔍 检查权限
 确保原生主机文件有执行权限：
 ```bash
-chmod +x /Users/user/python/cursor-local-login/native-host.py
+chmod +x /Users/user/python/cursor-local-login/native_host.py
 ```
 
 ### 4. 🧪 测试连接

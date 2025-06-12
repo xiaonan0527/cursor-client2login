@@ -40,7 +40,7 @@
 - **扩展ID**: `abcdefghijklmnopqrstuvwxyz123456`
 - **原生主机名**: `com.cursor.client.manage`
 - **配置文件位置**: `/Users/user/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.cursor.client.manage.json`
-- **原生主机程序**: `/Users/user/python/cursor-local-login/native-host.py`
+- **原生主机程序**: `/Users/user/python/cursor-local-login/native_host.py`
 - **程序状态**: ✅ 工作正常，可以读取Cursor数据
 
 ## 🆘 如果问题持续
@@ -49,7 +49,7 @@
 1. **检查Chrome版本兼容性**
 2. **尝试重新安装原生主机**：
    ```bash
-   python3 install-native-host.py
+   python3 install_native_host.py
    ```
 3. **检查Chrome安全设置**是否阻止了原生消息传递
 

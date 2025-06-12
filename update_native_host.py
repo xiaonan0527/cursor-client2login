@@ -64,7 +64,7 @@ def main():
         update_native_host_manifest()
         print("\n💡 如果仍然无法工作，请:")
         print("1. 在Chrome扩展页面找到你的扩展ID")
-        print("2. 运行: python3 update-native-host.py <扩展ID>")
+        print("2. 运行: python3 update_native_host.py <扩展ID>")
         print("3. 重启Chrome浏览器")
 
 

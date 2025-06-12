@@ -9,9 +9,9 @@
 - `popup.html` - 弹出窗口页面
 - `popup.js` - 弹出窗口逻辑
 - `content.js` - 内容脚本
-- `native-host.py` - 原生主机脚本
-- `install-native-host.py` - 原生主机安装器
-- `native-host.json` - 原生主机配置模板
+- `native_host.py` - 原生主机脚本
+- `install_native_host.py` - 原生主机安装器
+- `native_host.json` - 原生主机配置模板
 
 ### 2. 安装到Chrome浏览器
 
@@ -39,12 +39,12 @@
 
 **macOS/Linux:**
 ```bash
-python3 install-native-host.py install
+python3 install_native_host.py install
 ```
 
 **Windows:**
 ```cmd
-python install-native-host.py install
+python install_native_host.py install
 ```
 
 4. 重启Chrome浏览器
@@ -174,7 +174,7 @@ userid%3A%3AaccessToken
 
 ### 卸载原生主机程序
 ```bash
-python3 install-native-host.py uninstall
+python3 install_native_host.py uninstall
 ```
 
 ### 卸载Chrome插件

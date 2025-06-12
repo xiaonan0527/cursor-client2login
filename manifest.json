@@ -34,7 +34,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["native-host.py", "install-guide.md"],
+      "resources": ["native_host.py", "install_guide.md"],
       "matches": ["<all_urls>"]
     }
   ]

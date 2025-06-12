@@ -1,7 +1,7 @@
 {
   "name": "com.cursor.client.manage",
   "description": "Cursor Client2Login Native Host",
-  "path": "/path/to/native-host.py",
+  "path": "/path/to/native_host.py",
   "type": "stdio",
   "allowed_origins": [
     "chrome-extension://your-extension-id/"

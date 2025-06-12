@@ -37,9 +37,9 @@ function testNativeMessaging() {
 • 配置模式: 通配符 (chrome-extension://*)
 
 📋 可能的解决方案:
-1. 确保已安装原生主机: python3 install-native-host.py
+1. 确保已安装原生主机: python3 install_native_host.py
 2. 重启Chrome浏览器
-3. 尝试具体扩展ID: python3 update-native-host.py ${chrome.runtime.id}
+3. 尝试具体扩展ID: python3 update_native_host.py ${chrome.runtime.id}
       `;
       
       showMessage(errorInfo, 'error');
