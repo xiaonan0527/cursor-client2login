@@ -13,7 +13,9 @@
   ],
   
   "host_permissions": [
-    "https://www.cursor.com/*"
+    "https://www.cursor.com/*",
+    "https://cursor.com/*",
+    "https://*.cursor.com/*"
   ],
   
   "background": {

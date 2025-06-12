@@ -202,6 +202,8 @@ function setupEventListeners() {
     if (clearDataBtn) clearDataBtn.addEventListener('click', handleClearData);
     if (showInstallGuide) showInstallGuide.addEventListener('click', handleShowInstallGuide);
     
+
+    
     // 为账户列表设置事件代理，处理动态生成的按钮
     if (accountList) {
         accountList.addEventListener('click', handleAccountListClick);
@@ -221,28 +223,115 @@ async function updateCurrentStatus() {
     }
     
     try {
-        const result = await chrome.storage.local.get(['currentAccount']);
-        const account = result.currentAccount;
+        console.log('🔍 更新当前状态 - 验证账户一致性...');
         
-        if (account && account.email && account.userid) {
-            // 有当前账户
+        // 验证当前账户状态（对比storage和cookie）
+        const validationResult = await sendMessage('validateCurrentAccountStatus');
+        
+        if (!validationResult.success) {
+            throw new Error(validationResult.error);
+        }
+        
+        const status = validationResult.status;
+        const storageAccount = status.storageAccount;
+        const cookieStatus = status.cookieStatus;
+        
+        console.log('📊 账户状态验证结果:', status);
+        
+        if (status.isConsistent && storageAccount) {
+            // 账户状态一致且正常
             currentStatus.className = 'current-status';
             currentStatus.innerHTML = `
                 <span class="status-icon">✅</span>
                 <div class="status-title">当前账户</div>
-                <div class="status-email">${account.email}</div>
-                <div class="status-userid">${account.userid}</div>
+                <div class="status-email">${storageAccount.email}</div>
+                <div class="status-userid">${storageAccount.userid}</div>
+                <div class="status-note">状态正常</div>
             `;
+        } else if (cookieStatus.hasCookie && cookieStatus.cookieData && !cookieStatus.cookieData.isExpired) {
+            // Cookie存在且有效，但与storage不一致
+            const cookieData = cookieStatus.cookieData;
+            
+            // 尝试从账户列表中找到匹配的账户信息
+            const accountListResult = await chrome.storage.local.get(['accountList']);
+            const accounts = accountListResult.accountList || [];
+            const matchingAccount = accounts.find(acc => acc.userid === cookieData.userid);
+            
+            if (matchingAccount) {
+                currentStatus.className = 'current-status warning';
+                currentStatus.innerHTML = `
+                    <span class="status-icon">⚠️</span>
+                    <div class="status-title">当前账户</div>
+                    <div class="status-email">${matchingAccount.email}</div>
+                    <div class="status-userid">${cookieData.userid}</div>
+                    <div class="status-note">基于Cookie识别</div>
+                `;
+            } else {
+                currentStatus.className = 'current-status warning';
+                currentStatus.innerHTML = `
+                    <span class="status-icon">⚠️</span>
+                    <div class="status-title">当前账户</div>
+                    <div class="status-email">未知账户</div>
+                    <div class="status-userid">${cookieData.userid}</div>
+                    <div class="status-note">Cookie中有认证信息</div>
+                `;
+            }
+        } else if (storageAccount) {
+            // storage中有账户但Cookie无效
+            let statusNote = '请重新切换';
+            let statusIcon = '🔄';
+            let showRestoreButton = false;
+            
+            if (cookieStatus.hasCookie && cookieStatus.cookieData?.isExpired) {
+                statusNote = 'Cookie已过期';
+                statusIcon = '⏰';
+                showRestoreButton = true;
+            } else if (!cookieStatus.hasCookie) {
+                statusNote = 'Cookie已清除';
+                statusIcon = '🍪';
+                showRestoreButton = true;
+            }
+            
+            currentStatus.className = 'current-status warning';
+            currentStatus.innerHTML = `
+                <span class="status-icon">${statusIcon}</span>
+                <div class="status-title">当前账户</div>
+                <div class="status-email">${storageAccount.email}</div>
+                <div class="status-userid">${storageAccount.userid}</div>
+                <div class="status-note">${statusNote}</div>
+                ${showRestoreButton ? `
+                    <button id="restoreCookieBtn" class="btn-warning" style="margin-top: 8px; padding: 6px 12px; font-size: 11px; width: auto;">
+                        🔧 重新设置Cookie
+                    </button>
+                ` : ''}
+            `;
+            
+            // 如果显示了恢复按钮，添加事件监听器
+            if (showRestoreButton) {
+                setTimeout(() => {
+                    const restoreBtn = document.getElementById('restoreCookieBtn');
+                    if (restoreBtn) {
+                        restoreBtn.addEventListener('click', () => handleRestoreCookie(storageAccount));
+                    }
+                }, 100);
+            }
         } else {
-            // 没有当前账户
+            // 完全没有账户信息
             currentStatus.className = 'current-status no-account';
             currentStatus.innerHTML = `
                 <span class="status-icon">👤</span>
                 <div class="status-title">当前账户</div>
                 <div class="status-email">未登录</div>
                 <div class="status-userid">请先导入账户</div>
+                <div class="status-note">${status.recommendation}</div>
             `;
         }
+        
+        // 在控制台显示建议
+        if (status.recommendation && status.recommendation !== '当前账户状态正常') {
+            console.log('💡 建议:', status.recommendation);
+        }
+        
     } catch (error) {
         console.error('❌ 更新当前状态时发生错误:', error);
         currentStatus.className = 'current-status no-account';
@@ -251,6 +340,7 @@ async function updateCurrentStatus() {
             <div class="status-title">状态错误</div>
             <div class="status-email">加载失败</div>
             <div class="status-userid">请重试</div>
+            <div class="status-note">${error.message}</div>
         `;
     }
 }
@@ -756,9 +846,101 @@ function sendMessage(action, data = null) {
     });
 }
 
-// 将函数暴露到全局作用域，以便HTML中的onclick能够调用
-window.switchToAccount = switchToAccount;
-window.deleteAccount = deleteAccount;
+// 处理恢复Cookie
+async function handleRestoreCookie(storageAccount) {
+    try {
+        console.log('🔧 开始恢复Cookie...', storageAccount);
+        
+        const restoreBtn = document.getElementById('restoreCookieBtn');
+        if (restoreBtn) {
+            restoreBtn.disabled = true;
+            restoreBtn.textContent = '🔄 设置中...';
+        }
+        
+        let accessToken = storageAccount.accessToken;
+        
+        // 如果storage中没有完整的accessToken，尝试从原生主机获取
+        if (!accessToken || accessToken.length < 100) {
+            console.log('💡 Storage中的token不完整，尝试从原生主机获取...');
+            
+            try {
+                const nativeResult = await sendMessage('autoReadCursorData');
+                if (nativeResult.success && nativeResult.data.accessToken) {
+                    accessToken = nativeResult.data.accessToken;
+                    console.log('✅ 从原生主机获取到accessToken');
+                    
+                    // 更新storage中的账户信息
+                    const updatedAccount = {
+                        ...storageAccount,
+                        accessToken: accessToken
+                    };
+                    await chrome.storage.local.set({ currentAccount: updatedAccount });
+                    
+                    // 同时更新账户列表中对应的账户
+                    const accountListResult = await chrome.storage.local.get(['accountList']);
+                    const accounts = accountListResult.accountList || [];
+                    const accountIndex = accounts.findIndex(acc => 
+                        acc.email === storageAccount.email && acc.userid === storageAccount.userid
+                    );
+                    
+                    if (accountIndex !== -1) {
+                        accounts[accountIndex].accessToken = accessToken;
+                        await chrome.storage.local.set({ accountList: accounts });
+                        console.log('✅ 已更新账户列表中的token');
+                    }
+                } else {
+                    throw new Error('无法从原生主机获取accessToken');
+                }
+            } catch (nativeError) {
+                console.warn('⚠️ 从原生主机获取token失败:', nativeError.message);
+                // 如果原生主机失败，仍然尝试使用storage中的token
+                if (!accessToken) {
+                    throw new Error('无法获取有效的accessToken，请重新导入账户');
+                }
+            }
+        }
+        
+        // 设置Cookie
+        const cookieResult = await sendMessage('setCookie', { 
+            userid: storageAccount.userid, 
+            accessToken: accessToken 
+        });
+        
+        if (!cookieResult.success) {
+            throw new Error(cookieResult.error || 'Cookie设置失败');
+        }
+        
+        console.log('✅ Cookie设置成功');
+        showMessage('Cookie已重新设置', 'success');
+        
+        // 刷新状态显示
+        await updateCurrentStatus();
+        
+    } catch (error) {
+        console.error('❌ 恢复Cookie失败:', error);
+        showMessage(`恢复Cookie失败: ${error.message}`, 'error');
+        
+        // 恢复按钮状态
+        const restoreBtn = document.getElementById('restoreCookieBtn');
+        if (restoreBtn) {
+            restoreBtn.disabled = false;
+            restoreBtn.textContent = '🔧 重新设置Cookie';
+        }
+    }
+}
+
+// 注意：不再需要暴露到全局作用域，因为我们使用事件监听器而不是内联onclick
+
+// 手动验证账户状态
+async function handleValidateAccountStatus() {
+    try {
+        showMessage('正在验证账户状态...', 'info');
+        await updateCurrentStatus();
+        showMessage('账户状态已更新', 'success');
+    } catch (error) {
+        showMessage(`验证失败: ${error.message}`, 'error');
+    }
+}
 
 // 添加测试函数
 window.testAccountActions = function() {
@@ -775,4 +957,56 @@ window.testAccountActions = function() {
         });
     }
 };
+
+// 移除不必要的全局暴露
+
+// 调试Cookie状态
+async function debugCookieStatus() {
+    try {
+        console.log('🔬 开始调试Cookie状态...');
+        
+        // 获取Cookie状态
+        const cookieResult = await sendMessage('getCurrentCookieStatus');
+        console.log('🍪 Cookie状态详情:', cookieResult);
+        
+        // 获取storage中的当前账户
+        const storageResult = await chrome.storage.local.get(['currentAccount']);
+        console.log('💾 Storage中的当前账户:', storageResult.currentAccount);
+        
+        // 显示调试信息
+        const debugInfo = `
+📊 Cookie调试信息:
+─────────────────
+🍪 Cookie状态: ${cookieResult.success ? '✅ 成功' : '❌ 失败'}
+📋 是否有Cookie: ${cookieResult.hasCookie ? '是' : '否'}
+📄 消息: ${cookieResult.message}
+
+${cookieResult.debugInfo ? `
+🔍 调试详情:
+${JSON.stringify(cookieResult.debugInfo, null, 2)}
+` : ''}
+
+💾 Storage账户:
+${storageResult.currentAccount ? `
+- Email: ${storageResult.currentAccount.email}
+- UserID: ${storageResult.currentAccount.userid}
+- Token长度: ${storageResult.currentAccount.accessToken ? storageResult.currentAccount.accessToken.length : 'N/A'}
+` : '- 无当前账户'}
+        `;
+        
+        showMessage(debugInfo, 'info');
+        
+        // 也在控制台输出
+        console.log('🔬 完整调试信息:', {
+            cookieResult,
+            storageResult: storageResult.currentAccount
+        });
+        
+    } catch (error) {
+        console.error('❌ 调试Cookie状态时发生错误:', error);
+        showMessage(`调试失败: ${error.message}`, 'error');
+    }
+}
+
+// 注意：这些函数现在通过事件监听器调用，不需要暴露到全局作用域
 
