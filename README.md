@@ -8,7 +8,6 @@
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
 
 **一个强大的Chrome浏览器插件，用于管理Cursor认证信息和多账户快速切换**
-
 [📖 使用指南](#-使用指南) • [⚡ 快速开始](#-快速开始) • [🔧 故障排除](#-故障排除) • [🤝 贡献](#-贡献)
 
 </div>
@@ -67,7 +66,7 @@ graph TD
 
 1. **下载插件**
    ```bash
-   git clone https://github.com/yourusername/cursor-client2login.git
+   git clone https://github.com/aiflyzx123/cursor-client2login.git
    cd cursor-client2login
    ```
 
@@ -234,7 +233,7 @@ cursor-client2login/
 
 1. **克隆仓库**
    ```bash
-   git clone https://github.com/yourusername/cursor-client2login.git
+   git clone https://github.com/aiflyzx123/cursor-client2login.git
    cd cursor-client2login
    ```
 
@@ -270,7 +269,7 @@ python3 update-native-host.py <extension-id>
 
 ### 🐛 报告问题
 
-请使用 [GitHub Issues](https://github.com/yourusername/cursor-client2login/issues) 报告问题，并提供：
+请使用 [GitHub Issues](https://github.com/aiflyzx123/cursor-client2login/issues) 报告问题，并提供：
 - 操作系统和版本
 - Chrome版本
 - 详细的错误信息
@@ -304,7 +303,7 @@ python3 update-native-host.py <extension-id>
 
 **如果这个项目对你有帮助，请给个 ⭐ Star！**
 
-[🐛 报告问题](https://github.com/yourusername/cursor-client2login/issues) • [💡 功能建议](https://github.com/yourusername/cursor-client2login/discussions) • [📖 查看Wiki](https://github.com/yourusername/cursor-client2login/wiki)
+[🐛 报告问题](https://github.com/aiflyzx123/cursor-client2login/issues) • [💡 功能建议](https://github.com/aiflyzx123/cursor-client2login/discussions) • [📖 查看Wiki](https://github.com/aiflyzx123/cursor-client2login/wiki)
 
 Made with ❤️ by the community
 
