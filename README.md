@@ -154,11 +154,13 @@ cursor-client2login/
 ├── 🛠️ install-native-host.py # 原生主机安装器
 ├── 📋 native-host.json      # 原生主机配置模板
 ├── 🔄 update-native-host.py # 配置更新工具
-└── 📚 docs/                 # 详细文档
+└── 🔧 troubleshooting/      # 故障排除文档
     ├── diagnose.md          # 诊断指南
     ├── fix-steps.md         # 修复步骤
     ├── test-results.md      # 测试结果
-    └── wildcard-test.md     # 通配符测试
+    ├── wildcard-test.md     # 通配符测试
+    ├── delete-account-fix.md # 账户删除修复
+    └── cursor_auth_manage.py # 认证管理工具
 ```
 
 ## 🔧 故障排除
