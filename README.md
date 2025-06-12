@@ -32,10 +32,13 @@
 
 ## 📸 扩展ID获取指南
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/aiflyzx123/cursor-client2login/main/assets/images/screenshot.png" alt="Chrome扩展管理页面 - 获取扩展ID" width="600">
-  <p><em>在Chrome扩展管理页面复制扩展ID（红框标注位置）</em></p>
-</div>
+> **如何获取Chrome扩展ID：**
+> 1. 在Chrome地址栏输入 `chrome://extensions/`
+> 2. 找到"Cursor Client2Login"扩展
+> 3. 复制扩展ID（通常是32位字符串）
+> 4. 使用该ID运行配置命令
+
+*扩展ID示例：`abcdefghijklmnopqrstuvwxyz123456`*
 
 ## 🎮 工作原理
 
@@ -104,6 +107,7 @@ graph TD
    # Windows
    python update-native-host.py YOUR_EXTENSION_ID
    ```
+   ![Chrome扩展管理页面 - 获取扩展ID](./assets/images/extension-id-guide.png)
 
 5. **重启Chrome浏览器**
 
