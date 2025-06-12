@@ -153,6 +153,8 @@ graph TD
    - **Email**: 从scope_v3.json提取
    - **User ID**: 从scope_v3.json的id字段提取
    - **Access Token**: 从SQLite数据库查询获取
+
+
 在终端使用下面的命令执行，获取上面的信息，要求执行的目录下一定要有native_host.py文件！！
 ```
 python3 - <<'PY'
