@@ -30,6 +30,13 @@
 - **现代化UI** - 美观的Material Design风格界面
 - **数据安全** - 所有数据仅在本地处理，不上传任何服务器
 
+## 📸 项目演示
+
+<div align="center">
+  <img src="assets/images/screenshot.png" alt="Cursor Client2Login 插件界面截图" width="600">
+  <p><em>Cursor Client2Login 插件界面展示</em></p>
+</div>
+
 ## 🎮 工作原理
 
 ```mermaid
@@ -248,6 +255,9 @@ cursor-client2login/
 3. **加载到Chrome**
    - 开启开发者模式
    - 加载已解压的扩展程序
+
+4. 更新原生主机配置扩展ID
+
 
 ### 🧪 测试
 
