@@ -30,11 +30,11 @@
 - **现代化UI** - 美观的Material Design风格界面
 - **数据安全** - 所有数据仅在本地处理，不上传任何服务器
 
-## 📸 项目演示
+## 📸 扩展ID获取指南
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/aiflyzx123/cursor-client2login/main/assets/images/screenshot.png" alt="Cursor Client2Login 插件界面截图" width="600">
-  <p><em>Cursor Client2Login 插件界面展示</em></p>
+  <img src="https://raw.githubusercontent.com/aiflyzx123/cursor-client2login/main/assets/images/screenshot.png" alt="Chrome扩展管理页面 - 获取扩展ID" width="600">
+  <p><em>在Chrome扩展管理页面复制扩展ID（红框标注位置）</em></p>
 </div>
 
 ## 🎮 工作原理
@@ -92,14 +92,31 @@ graph TD
    python install-native-host.py install
    ```
 
-4. **重启Chrome浏览器**
+4. **更新原生主机配置扩展ID**
+   - 在Chrome中打开 `chrome://extensions/`
+   - 找到"Cursor Client2Login"扩展
+   - 复制扩展ID（如下图红框所示）
+   - 运行命令更新配置：
+   ```bash
+   # macOS/Linux
+   python3 update-native-host.py YOUR_EXTENSION_ID
+   
+   # Windows
+   python update-native-host.py YOUR_EXTENSION_ID
+   ```
+
+5. **重启Chrome浏览器**
 
 ### 🎯 首次使用
 
-1. 点击Chrome工具栏中的插件图标
-2. 选择"🤖 自动读取"标签
-3. 点击"🔍 自动读取Cursor数据"
-4. 插件将自动完成所有配置并打开Dashboard
+1. **配置扩展ID**（仅首次需要）
+   - 按照上述步骤4获取并配置扩展ID
+   - 重启Chrome浏览器
+
+2. 点击Chrome工具栏中的插件图标
+3. 选择"🤖 自动读取"标签
+4. 点击"🔍 自动读取Cursor数据"
+5. 插件将自动完成所有配置并打开Dashboard
 
 ## 📖 使用指南
 
@@ -256,7 +273,8 @@ cursor-client2login/
    - 开启开发者模式
    - 加载已解压的扩展程序
 
-4. 更新原生主机配置扩展ID
+4. **更新原生主机配置扩展ID**
+
 
 
 ### 🧪 测试
