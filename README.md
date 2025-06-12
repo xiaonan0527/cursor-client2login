@@ -33,7 +33,7 @@
 ## 📸 项目演示
 
 <div align="center">
-  <img src="assets/images/screenshot.png" alt="Cursor Client2Login 插件界面截图" width="600">
+  <img src="https://raw.githubusercontent.com/aiflyzx123/cursor-client2login/main/assets/images/screenshot.png" alt="Cursor Client2Login 插件界面截图" width="600">
   <p><em>Cursor Client2Login 插件界面展示</em></p>
 </div>
 
