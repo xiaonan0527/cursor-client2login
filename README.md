@@ -313,7 +313,7 @@ python3 update_native_host.py <extension-id>
 
 ## 📝 更新日志
 
-### v1.0.0 (最新版本)
+### v1.1.0 (最新版本)
 - ✅ 支持三种导入方式：自动读取、文件上传、手动输入
 - ✅ 原生主机程序支持自动读取本地文件
 - ✅ 支持多账户管理和快速切换
@@ -323,6 +323,7 @@ python3 update_native_host.py <extension-id>
 - ✅ 支持拖拽文件上传
 - ✅ 跨平台支持（Windows、macOS、Linux）
 - ✅ 智能错误诊断和修复提示
+- ✅ Cookie 恢复
 
 ### 🆕 更新日志
 
