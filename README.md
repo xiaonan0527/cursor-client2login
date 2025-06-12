@@ -153,6 +153,22 @@ graph TD
    - **Email**: 从scope_v3.json提取
    - **User ID**: 从scope_v3.json的id字段提取
    - **Access Token**: 从SQLite数据库查询获取
+在终端使用下面的命令执行，获取上面的信息，要求执行的目录下一定要有native_host.py文件！！
+```
+python3 - <<'PY'
+from native_host import CursorDataManager
+import json, sys
+token   = CursorDataManager.read_access_token()
+scope   = CursorDataManager.read_scope_json()
+if "error" in token:  sys.exit(f"❌ {token['error']}")
+if "error" in scope:  sys.exit(f"❌ {scope['error']}")
+print(json.dumps({
+    "email":       scope["email"],
+    "userid":      scope["userid"],
+    "accessToken": token["accessToken"],   # 只显示前 10 位
+}, ensure_ascii=False, indent=2))
+PY
+```
 2. 填写表单并提交
 
 ## 🔄 多账户管理
