@@ -32,6 +32,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'validateCurrentAccountStatus') {
     validateCurrentAccountStatus().then(sendResponse);
     return true;
+  } else if (request.action === 'getDeepToken') {
+    getDeepToken(request.data).then(sendResponse);
+    return true;
+  } else if (request.action === 'pollDeepToken') {
+    pollDeepToken(request.data).then(sendResponse);
+    return true;
   }
 });
 
@@ -238,6 +244,13 @@ async function getCursorAuthData() {
 // 保存到localStorage
 async function saveToLocalStorage(data) {
   try {
+    console.log('💾 开始保存账户数据到Storage并更新Cookie...', {
+      email: data.email,
+      userid: data.userid,
+      tokenType: data.tokenType || 'client',
+      accessTokenLength: data.accessToken ? data.accessToken.length : 0
+    });
+
     // 获取现有的账户列表
     const result = await chrome.storage.local.get(['accountList']);
     let accountList = result.accountList || [];
@@ -247,9 +260,11 @@ async function saveToLocalStorage(data) {
     
     if (existingIndex >= 0) {
       // 更新现有账户
+      console.log('🔄 更新现有账户:', data.email);
       accountList[existingIndex] = data;
     } else {
       // 添加新账户
+      console.log('➕ 添加新账户:', data.email);
       accountList.push(data);
     }
     
@@ -258,9 +273,33 @@ async function saveToLocalStorage(data) {
       accountList: accountList,
       currentAccount: data
     });
+    console.log('✅ 账户数据已保存到Storage');
+
+    // 统一在这里设置Cookie，确保Storage和Cookie同步
+    console.log('🍪 开始统一设置Cookie...');
+    const cookieResult = await setCursorCookie({
+      userid: data.userid,
+      accessToken: data.accessToken
+    });
+
+    if (!cookieResult.success) {
+      console.warn('⚠️ Cookie设置失败，但Storage已保存:', cookieResult.error);
+      return { 
+        success: true, 
+        message: '账户信息已保存到本地存储，但Cookie设置失败',
+        cookieError: cookieResult.error
+      };
+    }
+
+    console.log('✅ 账户数据和Cookie已同步更新');
+    return { 
+      success: true, 
+      message: '账户信息已保存到本地存储并更新Cookie',
+      cookieSet: true
+    };
     
-    return { success: true, message: '账户信息已保存到本地存储' };
   } catch (error) {
+    console.error('❌ 保存账户数据失败:', error);
     return { success: false, error: error.message };
   }
 }
@@ -271,8 +310,28 @@ async function setCursorCookie(data) {
     const { userid, accessToken } = data;
     const cookieValue = `${userid}%3A%3A${accessToken}`;
     
-    // 设置Cookie
-    await chrome.cookies.set({
+    console.log('🍪 开始设置Cursor Cookie...', {
+      userid: userid,
+      accessTokenLength: accessToken ? accessToken.length : 0,
+      cookieValueLength: cookieValue.length
+    });
+    
+    // 先尝试删除现有的Cookie，确保强制覆盖
+    try {
+      await chrome.cookies.remove({
+        url: 'https://www.cursor.com',
+        name: 'WorkosCursorSessionToken'
+      });
+      console.log('🗑️ 已删除现有Cookie，准备设置新Cookie');
+    } catch (removeError) {
+      console.log('⚠️ 删除现有Cookie时出错（可能不存在）:', removeError.message);
+    }
+    
+    // 等待一下确保删除操作完成
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // 设置新的Cookie
+    const cookieParams = {
       url: 'https://www.cursor.com',
       name: 'WorkosCursorSessionToken',
       value: cookieValue,
@@ -281,10 +340,54 @@ async function setCursorCookie(data) {
       httpOnly: false,
       secure: true,
       sameSite: 'lax'
+    };
+    
+    console.log('🍪 设置Cookie参数:', {
+      name: cookieParams.name,
+      domain: cookieParams.domain,
+      path: cookieParams.path,
+      valueLength: cookieParams.value.length,
+      secure: cookieParams.secure,
+      sameSite: cookieParams.sameSite
     });
     
-    return { success: true, message: 'Cookie已设置成功' };
+    await chrome.cookies.set(cookieParams);
+    
+    console.log('✅ Cookie设置操作完成');
+    
+    // 验证Cookie是否设置成功
+    const verificationCookies = await chrome.cookies.getAll({
+      url: 'https://www.cursor.com',
+      name: 'WorkosCursorSessionToken'
+    });
+    
+    if (verificationCookies.length > 0) {
+      const verifiedCookie = verificationCookies[0];
+      console.log('✅ Cookie设置验证成功:', {
+        name: verifiedCookie.name,
+        domain: verifiedCookie.domain,
+        valueLength: verifiedCookie.value ? verifiedCookie.value.length : 0,
+        secure: verifiedCookie.secure
+      });
+      
+      // 检查Cookie值是否正确
+      if (verifiedCookie.value === cookieValue) {
+        console.log('✅ Cookie值完全匹配');
+        return { success: true, message: 'Cookie已设置成功并验证' };
+      } else {
+        console.warn('⚠️ Cookie值不匹配', {
+          expected: cookieValue.substring(0, 50) + '...',
+          actual: verifiedCookie.value ? verifiedCookie.value.substring(0, 50) + '...' : 'null'
+        });
+        return { success: true, message: 'Cookie已设置但值可能不匹配' };
+      }
+    } else {
+      console.warn('⚠️ Cookie设置后验证失败：未找到Cookie');
+      return { success: false, error: 'Cookie设置后验证失败' };
+    }
+    
   } catch (error) {
+    console.error('❌ 设置Cookie时发生错误:', error);
     return { success: false, error: error.message };
   }
 }
@@ -292,40 +395,85 @@ async function setCursorCookie(data) {
 // 清除Cookie
 async function clearCursorCookie() {
   try {
-    console.log('🍪 开始清除Cursor认证Cookie...');
+    console.log('🍪 开始彻底清除Cursor认证Cookie...');
     
-    // 清除特定的Cookie
-    await chrome.cookies.remove({
-      url: 'https://www.cursor.com',
-      name: 'WorkosCursorSessionToken'
-    });
+    // 多种方式清除特定的Cookie，确保彻底删除
+    const removeTargets = [
+      { url: 'https://www.cursor.com', name: 'WorkosCursorSessionToken' },
+      { url: 'https://cursor.com', name: 'WorkosCursorSessionToken' },
+      { url: 'http://www.cursor.com', name: 'WorkosCursorSessionToken' },
+      { url: 'http://cursor.com', name: 'WorkosCursorSessionToken' }
+    ];
     
-    console.log('✅ WorkosCursorSessionToken Cookie已清除');
-    
-    // 也尝试清除其他可能的cursor相关cookie
-    const allCookies = await chrome.cookies.getAll({
-      domain: '.cursor.com'
-    });
-    
-    console.log('🔍 找到的cursor.com相关Cookies:', allCookies.length);
-    
-    for (const cookie of allCookies) {
-      if (cookie.name.toLowerCase().includes('session') || 
-          cookie.name.toLowerCase().includes('auth') ||
-          cookie.name.toLowerCase().includes('token')) {
-        try {
-          await chrome.cookies.remove({
-            url: `https://${cookie.domain}`,
-            name: cookie.name
-          });
-          console.log(`✅ 已清除Cookie: ${cookie.name}`);
-        } catch (err) {
-          console.warn(`⚠️ 清除Cookie失败: ${cookie.name}`, err);
-        }
+    for (const target of removeTargets) {
+      try {
+        await chrome.cookies.remove(target);
+        console.log(`🗑️ 尝试清除Cookie: ${target.url} - ${target.name}`);
+      } catch (err) {
+        console.log(`⚠️ 清除Cookie失败 (${target.url}):`, err.message);
       }
     }
     
-    return { success: true, message: 'Cursor认证Cookie已清除' };
+    // 查找并清除所有可能的cursor相关cookie
+    const allDomains = ['.cursor.com', 'cursor.com', 'www.cursor.com'];
+    
+    for (const domain of allDomains) {
+      try {
+        const allCookies = await chrome.cookies.getAll({ domain });
+        console.log(`🔍 在域名 ${domain} 找到的Cookies:`, allCookies.length);
+        
+        for (const cookie of allCookies) {
+          if (cookie.name.toLowerCase().includes('session') || 
+              cookie.name.toLowerCase().includes('auth') ||
+              cookie.name.toLowerCase().includes('token') ||
+              cookie.name === 'WorkosCursorSessionToken') {
+            try {
+              // 尝试多种URL格式来删除Cookie
+              const urlsToTry = [
+                `https://${cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain}`,
+                `https://${cookie.domain}`,
+                `http://${cookie.domain.startsWith('.') ? cookie.domain.substring(1) : cookie.domain}`,
+                `http://${cookie.domain}`
+              ];
+              
+              for (const url of urlsToTry) {
+                try {
+                  await chrome.cookies.remove({
+                    url: url,
+                    name: cookie.name
+                  });
+                  console.log(`✅ 成功清除Cookie: ${cookie.name} (${url})`);
+                  break; // 如果成功了就跳出循环
+                } catch (removeErr) {
+                  console.log(`⚠️ 尝试删除失败 ${cookie.name} (${url}):`, removeErr.message);
+                }
+              }
+            } catch (err) {
+              console.warn(`⚠️ 清除Cookie失败: ${cookie.name}`, err);
+            }
+          }
+        }
+      } catch (domainErr) {
+        console.log(`⚠️ 查询域名 ${domain} 的Cookie失败:`, domainErr.message);
+      }
+    }
+    
+    // 等待一下确保删除操作完成
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 验证清除结果
+    const remainingCookies = await chrome.cookies.getAll({
+      name: 'WorkosCursorSessionToken'
+    });
+    
+    if (remainingCookies.length === 0) {
+      console.log('✅ 所有WorkosCursorSessionToken Cookie已彻底清除');
+      return { success: true, message: 'Cursor认证Cookie已彻底清除' };
+    } else {
+      console.warn('⚠️ 仍有Cookie未清除:', remainingCookies.map(c => ({ name: c.name, domain: c.domain })));
+      return { success: true, message: `Cursor认证Cookie已部分清除，仍有${remainingCookies.length}个Cookie残留` };
+    }
+    
   } catch (error) {
     console.error('❌ 清除Cookie时发生错误:', error);
     return { success: false, error: error.message };
@@ -581,6 +729,46 @@ async function getCurrentCookieStatus() {
   }
 }
 
+// 获取深度Token
+async function getDeepToken(params = {}) {
+  try {
+    console.log('开始获取深度Token...', params);
+    
+    const message = {
+      action: 'getClientCurrentData',
+      params: {
+        mode: params.mode || 'deep_headless'
+      }
+    };
+    
+    const nativeResult = await sendNativeMessage(message);
+    console.log('深度Token原生主机响应:', nativeResult);
+    
+    if (nativeResult && !nativeResult.error) {
+      console.log('深度Token获取成功');
+      return {
+        success: true,
+        data: nativeResult,
+        method: 'native'
+      };
+    } else {
+      console.log('深度Token原生主机返回错误:', nativeResult?.error);
+      return {
+        success: false,
+        error: `深度Token获取失败: ${nativeResult?.error || '未知错误'}`,
+        needFileSelection: true
+      };
+    }
+  } catch (error) {
+    console.error('getDeepToken error:', error);
+    return {
+      success: false,
+      error: `深度Token获取失败: ${error.message}`,
+      needFileSelection: true
+    };
+  }
+}
+
 // 验证当前账户状态（对比storage和cookie）
 async function validateCurrentAccountStatus() {
   try {
@@ -633,4 +821,64 @@ async function validateCurrentAccountStatus() {
     console.error('❌ 验证账户状态时发生错误:', error);
     return { success: false, error: error.message };
   }
+}
+
+// 轮询深度Token（在background中处理，避免CORS问题）
+async function pollDeepToken(params) {
+  const { uuid, verifier, maxAttempts = 30, pollInterval = 2000 } = params;
+  
+  console.log('🔄 Background开始轮询深度Token...', { uuid: uuid.substring(0, 8) + '...', maxAttempts });
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`🔄 Background轮询尝试 ${attempt}/${maxAttempts}...`);
+      
+      const pollUrl = `https://api2.cursor.sh/auth/poll?uuid=${uuid}&verifier=${verifier}`;
+      
+      const response = await fetch(pollUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept": "*/*",
+          "Referer": "https://www.cursor.com/"
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📥 Background轮询响应:', data);
+        
+        const deepAccessToken = data.accessToken;
+        const authId = data.authId || '';
+
+        if (deepAccessToken) {
+          console.log('🎉 Background成功获取深度Token！');
+          
+          return {
+            success: true,
+            data: {
+              accessToken: deepAccessToken,
+              authId: authId
+            }
+          };
+        }
+      }
+      
+      // 如果还没有获取到Token，等待后继续
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+      
+    } catch (error) {
+      console.error(`❌ Background轮询第${attempt}次失败:`, error);
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+    }
+  }
+  
+  console.error('❌ Background轮询超时，未能获取到深度Token');
+  return {
+    success: false,
+    error: '轮询超时，未能获取到深度Token'
+  };
 } 

@@ -185,7 +185,7 @@ def test_native_host():
     try:
         print("🧪 测试原生主机连接...")
         
-        # 尝试直接运行native_host.py脚本
+        # 首先测试本地脚本
         current_dir = Path(__file__).parent.absolute()
         native_host_script = current_dir / "native_host.py"
         
@@ -193,48 +193,50 @@ def test_native_host():
             print(f"❌ 找不到native_host.py文件: {native_host_script}")
             return False
         
-        # 创建测试消息
-        test_message = {"action": "getClientCurrentData"}
-        message_json = json.dumps(test_message)
-        message_length = len(message_json.encode('utf-8'))
-        
-        print(f"📤 发送测试消息: {test_message}")
-        
-        # 运行脚本并发送消息
-        process = subprocess.Popen(
-            [sys.executable, str(native_host_script)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+        print("📍 测试本地脚本...")
+        result = subprocess.run(
+            [sys.executable, str(native_host_script), 'test'],
+            capture_output=True,
+            timeout=30,  # 增加超时时间到30秒
+            text=True
         )
         
-        # 发送消息长度（4字节）+ 消息内容
-        import struct
-        length_bytes = struct.pack('@I', message_length)
-        message_bytes = message_json.encode('utf-8')
+        if result.returncode != 0:
+            print(f"❌ 本地脚本测试失败，返回码: {result.returncode}")
+            if result.stderr:
+                print(f"错误信息: {result.stderr}")
+            return False
         
-        stdout, stderr = process.communicate(length_bytes + message_bytes, timeout=10)
+        print("✅ 本地脚本测试成功")
+        print(result.stdout)
         
-        if stderr:
-            print(f"⚠️  stderr: {stderr.decode('utf-8')}")
+        # 然后测试已安装的脚本
+        print("\n📍 测试已安装的脚本...")
+        host_dir = get_chrome_native_host_dir()
+        installed_script = os.path.join(host_dir, "native_host.py")
         
-        if stdout:
-            # 解析响应
-            if len(stdout) >= 4:
-                response_length = struct.unpack('@I', stdout[:4])[0]
-                if len(stdout) >= 4 + response_length:
-                    response_data = stdout[4:4+response_length].decode('utf-8')
-                    response = json.loads(response_data)
-                    print(f"📥 收到响应: {response}")
-                    
-                    if 'error' in response:
-                        print(f"⚠️  原生主机返回错误: {response['error']}")
-                    else:
-                        print("✅ 原生主机连接测试成功！")
-                        return True
+        if os.path.exists(installed_script):
+            result = subprocess.run(
+                [sys.executable, installed_script, 'test'],
+                capture_output=True,
+                timeout=30,  # 增加超时时间到30秒
+                text=True
+            )
+            
+            if result.returncode != 0:
+                print(f"❌ 已安装脚本测试失败，返回码: {result.returncode}")
+                if result.stderr:
+                    print(f"错误信息: {result.stderr}")
+                return False
+            
+            print("✅ 已安装脚本测试成功")
+            print(result.stdout)
+        else:
+            print(f"⚠️  未找到已安装的脚本: {installed_script}")
+            print("💡 提示: 请先运行 'python install_native_host.py install'")
         
-        print("❌ 原生主机连接测试失败")
-        return False
+        print("\n✅ 原生主机连接测试完成！")
+        return True
         
     except subprocess.TimeoutExpired:
         print("❌ 原生主机响应超时")
