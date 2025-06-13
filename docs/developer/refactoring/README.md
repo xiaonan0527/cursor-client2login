@@ -35,36 +35,30 @@
 - 🧪 完整的测试验证
 - 🚀 部署建议和工作流程
 
-### 🧪 测试相关文档
+### 📚 相关文档链接
 
-#### 4. [TESTING_GUIDE.md](./TESTING_GUIDE.md)
-**内容**: 原始测试指南
+#### 4. [测试指南](../testing.md) ⭐ **重要**
+**内容**: 完整的测试指南
 - 本地测试环境使用
 - Chrome扩展API模拟
-- 调试功能说明
-
-#### 5. [TESTING_GUIDE_PYCACHE_SOLUTION.md](./TESTING_GUIDE_PYCACHE_SOLUTION.md) ⭐ **重要**
-**内容**: __pycache__问题解决方案
-- Chrome扩展加载失败问题分析
-- 多种解决方案对比
+- __pycache__问题解决方案
 - 智能测试管理器使用指南
-- 最佳实践和工作流程
 
 ## 🎯 推荐阅读顺序
 
 ### 对于新开发者
 1. **REFACTORING_SUMMARY.md** - 了解项目架构
-2. **TESTING_GUIDE_PYCACHE_SOLUTION.md** - 学习测试流程
+2. **[测试指南](../testing.md)** - 学习测试流程
 3. **OPTIMIZATION_SUMMARY_v1.2.0.md** - 了解最新优化
 
 ### 对于维护者
 1. **OPTIMIZATION_SUMMARY_v1.2.0.md** - 查看最新状态
-2. **TESTING_GUIDE_PYCACHE_SOLUTION.md** - 掌握测试工具
+2. **[测试指南](../testing.md)** - 掌握测试工具
 3. **OPTIMIZATION_COMPLETE.md** - 了解历史优化
 
 ### 对于用户
 1. **OPTIMIZATION_SUMMARY_v1.2.0.md** - 了解新功能
-2. **TESTING_GUIDE_PYCACHE_SOLUTION.md** - 解决使用问题
+2. **[测试指南](../testing.md)** - 解决使用问题
 
 ## 📊 版本历史
 
@@ -84,7 +78,7 @@ python3 test_manager.py
 cat "augment_code重构/OPTIMIZATION_SUMMARY_v1.2.0.md"
 
 # 3. 了解测试解决方案
-cat "augment_code重构/TESTING_GUIDE_PYCACHE_SOLUTION.md"
+cat "docs/developer/testing.md"
 ```
 
 ## 📝 文档维护
