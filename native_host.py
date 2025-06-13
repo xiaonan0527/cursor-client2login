@@ -151,14 +151,14 @@ class CursorDataManager:
                 conn.execute("PRAGMA journal_mode=WAL")  # 设置WAL模式以避免锁定问题
                 cursor = conn.cursor()
 
-                # 检查表是否存在
+                # 检查表是否存在 (注意：表名是ItemTable，首字母大写)
                 cursor.execute("""
                     SELECT name FROM sqlite_master
-                    WHERE type='table' AND name='itemTable'
+                    WHERE type='table' AND name='ItemTable'
                 """)
                 if not cursor.fetchone():
                     return {
-                        "error": "数据库中未找到itemTable表",
+                        "error": "数据库中未找到ItemTable表",
                         "suggestions": [
                             "确保Cursor已正确安装并运行过",
                             "检查数据库文件是否完整",
@@ -168,7 +168,7 @@ class CursorDataManager:
                     }
 
                 # 查询accessToken
-                cursor.execute("SELECT value FROM itemTable WHERE key = ?", ("cursorAuth/accessToken",))
+                cursor.execute("SELECT value FROM ItemTable WHERE key = ?", ("cursorAuth/accessToken",))
                 result = cursor.fetchone()
 
                 if result and result[0]:
