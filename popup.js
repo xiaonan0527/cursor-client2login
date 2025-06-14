@@ -159,7 +159,7 @@ class DOMManager {
             autoReadBtn: document.getElementById('autoReadBtn'),
             processFilesBtn: document.getElementById('processFilesBtn'),
             accountList: document.getElementById('accountList'),
-            refreshAccountsBtn: document.getElementById('refreshAccountsBtn'),
+
             openDashboardBtn: document.getElementById('openDashboardBtn'),
             clearDataBtn: document.getElementById('clearDataBtn'),
             jsonDropZone: document.getElementById('jsonDropZone'),
@@ -223,6 +223,65 @@ class UIManager {
     static showMessage(message, type = 'info', duration = null) {
         console.log(`📝 显示消息 [${type}]:`, message);
 
+        // 使用Toast通知替代原有的消息区域
+        this.showToast(message, type, duration);
+    }
+
+    static showToast(message, type = 'info', duration = null) {
+        try {
+            // 创建Toast元素
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            toast.textContent = message;
+            toast.style.whiteSpace = 'pre-line';
+
+            // 获取或创建Toast容器
+            let toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toastContainer';
+                document.body.appendChild(toastContainer);
+            }
+
+            // 添加到容器
+            toastContainer.appendChild(toast);
+
+            // 显示Toast（延迟一帧以确保CSS过渡生效）
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // 根据消息类型调整自动清除时间
+            const clearTime = duration || (type === 'error' ? 8000 : type === 'loading' ? 0 : 3000);
+
+            if (clearTime > 0) {
+                setTimeout(() => {
+                    this.hideToast(toast);
+                }, clearTime);
+            }
+
+            console.log('✅ Toast通知已显示');
+            return toast;
+        } catch (error) {
+            console.error('❌ 显示Toast通知时发生错误:', error);
+            // 降级到原有的消息显示方式
+            this.showLegacyMessage(message, type, duration);
+        }
+    }
+
+    static hideToast(toast) {
+        if (!toast || !toast.parentNode) return;
+
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 300); // 等待CSS过渡完成
+    }
+
+    static showLegacyMessage(message, type = 'info', duration = null) {
+        // 保留原有的消息显示方式作为降级方案
         const messageArea = DOMManager.get('messageArea');
         if (!messageArea) {
             console.error('❌ messageArea DOM元素未找到');
@@ -254,13 +313,21 @@ class UIManager {
                 }, clearTime);
             }
 
-            console.log('✅ 消息已显示到页面');
+            console.log('✅ 降级消息已显示到页面');
         } catch (error) {
-            console.error('❌ 显示消息时发生错误:', error);
+            console.error('❌ 显示降级消息时发生错误:', error);
         }
     }
 
     static clearMessage() {
+        // 清除Toast通知
+        const toastContainer = document.getElementById('toastContainer');
+        if (toastContainer) {
+            const toasts = toastContainer.querySelectorAll('.toast-notification');
+            toasts.forEach(toast => this.hideToast(toast));
+        }
+
+        // 清除传统消息区域
         const messageArea = DOMManager.get('messageArea');
         if (messageArea) {
             messageArea.innerHTML = '';
@@ -295,13 +362,62 @@ class UIManager {
         if (isConsistent && storageAccount) {
             // 账户状态一致且正常
             currentStatus.className = 'current-status';
+            
+            // 获取token信息
+            const tokenType = storageAccount.tokenType || 'client';
+            const validDays = storageAccount.validDays;
+            let statusNote = '状态正常';
+            
+            // 计算剩余时间
+            if (storageAccount.expiresTime) {
+                const expiresDate = new Date(storageAccount.expiresTime);
+                const now = new Date();
+                const timeDiff = expiresDate.getTime() - now.getTime();
+                const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                
+                if (daysLeft > 0) {
+                    if (tokenType === 'deep') {
+                        const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
+                        statusNote = `🌟 深度Token (${expiresDateStr}到期，剩余${daysLeft}天)`;
+                    } else {
+                        statusNote = `客户端Token - 剩余${daysLeft}天`;
+                    }
+                } else {
+                    statusNote = 'Token已过期';
+                    currentStatus.className = 'current-status warning';
+                }
+            } else {
+                const typeText = tokenType === 'deep' ? '深度Token' : '客户端Token';
+                if (validDays) {
+                    statusNote = `${typeText} (${validDays}天有效期)`;
+                } else {
+                    statusNote = `${typeText} (有效期未知)`;
+                }
+            }
+            
             currentStatus.innerHTML = `
+                <button id="logoutBtn" class="logout-btn" title="退出登录（仅清除Cookie）">退出</button>
                 <span class="status-icon">✅</span>
                 <div class="status-title">当前账户</div>
                 <div class="status-email">${storageAccount.email}</div>
                 <div class="status-userid">${storageAccount.userid}</div>
-                <div class="status-note">状态正常</div>
+                <div class="status-note">${statusNote}</div>
             `;
+
+            // 添加退出按钮事件监听器
+            setTimeout(() => {
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handleLogout();
+                    });
+                }
+            }, 100);
         } else if (cookieStatus.hasCookie && cookieStatus.cookieData && !cookieStatus.cookieData.isExpired) {
             // Cookie存在且有效，但与storage不一致
             this.updateStatusWithCookie(currentStatus, cookieStatus.cookieData);
@@ -396,27 +512,68 @@ class UIManager {
         }
 
         if (accounts.length === 0) {
-            accountList.innerHTML = '<div class="loading">暂无保存的账户</div>';
+            accountList.innerHTML = '<div class="empty-state">暂无保存的账户<br><small>请先导入账户数据</small></div>';
             return;
         }
 
         const accountsHtml = accounts.map((account, index) => {
             const email = account.email || '未知邮箱';
             const userid = account.userid || '未知用户ID';
+            const tokenType = account.tokenType || 'client';
+            const validDays = account.validDays;
 
             const isCurrentAccount = currentAccount &&
                                    currentAccount.email === account.email &&
                                    currentAccount.userid === account.userid;
 
+            // 计算token状态
+            let tokenStatusText = '';
+            let tokenStatusClass = '';
+            if (account.expiresTime) {
+                const expiresDate = new Date(account.expiresTime);
+                const now = new Date();
+                const timeDiff = expiresDate.getTime() - now.getTime();
+                const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+                
+                if (daysLeft > 0) {
+                    if (tokenType === 'deep') {
+                        // 深度Token显示完整过期日期
+                        const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                        });
+                        tokenStatusText = `🌟 深度Token (${expiresDateStr}到期)`;
+                        tokenStatusClass = 'token-deep-highlight';
+                    } else {
+                        tokenStatusText = `客户端Token (${daysLeft}天)`;
+                        tokenStatusClass = 'token-client';
+                    }
+                } else {
+                    tokenStatusText = '已过期';
+                    tokenStatusClass = 'token-expired';
+                }
+            } else {
+                const typeText = tokenType === 'deep' ? '🌟 深度' : '客户端';
+                if (validDays) {
+                    tokenStatusText = `${typeText}Token (${validDays}天)`;
+                } else {
+                    tokenStatusText = `${typeText}Token`;
+                }
+                tokenStatusClass = tokenType === 'deep' ? 'token-deep-highlight' : 'token-client';
+            }
+
             let actionButtons = '';
             if (isCurrentAccount) {
                 actionButtons = `
                     <span class="current-account-badge">正在使用</span>
+                    <button class="btn-small btn-secondary" data-action="refresh" data-index="${index}">🔄 刷新</button>
                     <button class="btn-small btn-danger" data-action="delete" data-index="${index}">删除</button>
                 `;
             } else {
                 actionButtons = `
                     <button class="btn-small btn-info" data-action="switch" data-index="${index}">切换</button>
+                    <button class="btn-small btn-secondary" data-action="refresh" data-index="${index}">🔄 刷新</button>
                     <button class="btn-small btn-danger" data-action="delete" data-index="${index}">删除</button>
                 `;
             }
@@ -426,6 +583,7 @@ class UIManager {
                     <div class="account-info">
                         <div class="account-email">${email}</div>
                         <div class="account-userid">ID: ${userid}</div>
+                        <div class="account-token-status ${tokenStatusClass}">${tokenStatusText}</div>
                     </div>
                     <div class="account-actions">
                         ${actionButtons}
@@ -545,8 +703,7 @@ class AccountManager {
                     await chrome.storage.local.set({ currentAccount: account });
                     AppState.setState({ currentAccount: account });
 
-                    await this.updateCurrentStatus();
-                    await this.loadAccountList();
+                    await this.refreshAccountInterface();
 
                     setTimeout(async () => {
                         await DashboardManager.openDashboard();
@@ -604,10 +761,97 @@ class AccountManager {
                     currentAccount: isCurrentAccount ? null : currentAccount
                 });
 
-                await this.updateCurrentStatus();
-                await this.loadAccountList();
+                await this.refreshAccountInterface();
             }
         }, '删除账户');
+    }
+
+    static async refreshAccountToken(index) {
+        return ErrorHandler.handleAsyncError(async () => {
+            const { accountList } = AppState.getState();
+
+            if (index < 0 || index >= accountList.length) {
+                throw new Error('无效的账户索引');
+            }
+
+            const account = accountList[index];
+            
+            if (!confirm(`确定要刷新账户 ${account.email} 的Token吗？\n\n这将使用浏览器模式获取新的深度Token（60天有效期）。`)) {
+                return;
+            }
+
+            LoadingManager.show('accountList', '🔄 正在刷新Token...');
+
+            try {
+                console.log('🔄 开始刷新账户Token:', account.email);
+
+                // 使用当前账户的Token获取深度Token
+                const deepTokenResult = await MessageManager.sendMessage('getDeepToken', { 
+                    mode: 'deep_browser',
+                    headless: false,
+                    access_token: account.accessToken,
+                    userid: account.userid
+                });
+
+                if (deepTokenResult.success || (deepTokenResult.data && !deepTokenResult.error)) {
+                    const responseData = deepTokenResult.data || deepTokenResult;
+                    
+                                        if (responseData.needBrowserAction) {
+                        // 需要浏览器操作
+                        UIManager.showMessage('🌐 正在打开浏览器页面，请确认登录...', 'info');
+                        
+                        // handleDeepTokenBrowserMode 会完成所有必要的保存和Cookie设置
+                        await DataImportManager.handleDeepTokenBrowserMode(responseData);
+
+                        console.log('✅ 深度Token浏览器模式完成，账户信息已自动更新');
+                        UIManager.showMessage(`✅ 账户 ${account.email} 的深度Token已刷新完成`, 'success');
+
+                        // 刷新界面（handleDeepTokenBrowserMode已经完成了状态更新）
+                        LoadingManager.hide('accountList');
+                    } else {
+                        // 直接获取到了深度Token
+                        const updatedAccount = {
+                            ...account,
+                            accessToken: responseData.accessToken,
+                            WorkosCursorSessionToken: responseData.WorkosCursorSessionToken || `${responseData.userid}%3A%3A${responseData.accessToken}`,
+                            expiresTime: responseData.expiresTime,
+                            tokenType: 'deep',
+                            validDays: 60,
+                            updatedTime: new Date().toISOString()
+                        };
+
+                        // 使用统一的保存方法，自动处理Storage和Cookie的同步
+                        console.log('🔄 使用统一保存方法更新账户Token...');
+                        const saveResult = await MessageManager.sendMessage('saveToLocalStorage', updatedAccount);
+
+                        if (!saveResult.success) {
+                            throw new Error(`保存更新的账户失败: ${saveResult.error}`);
+                        }
+
+                        console.log('✅ 账户Token已通过统一方法更新:', saveResult.message);
+
+                        // 处理Cookie设置结果并显示消息
+                        if (saveResult.cookieError) {
+                            console.warn('⚠️ Cookie设置失败:', saveResult.cookieError);
+                            UIManager.showMessage(`✅ 账户 ${account.email} 的Token已刷新为深度Token，但Cookie设置失败`, 'warning');
+                        } else if (saveResult.cookieSet) {
+                            console.log('✅ Cookie已同步更新');
+                            UIManager.showMessage(`✅ 账户 ${account.email} 的Token已刷新为深度Token（60天有效期）`, 'success');
+                        }
+
+                        // 更新应用状态并刷新界面
+                        AppState.setState({ currentAccount: updatedAccount });
+                        await this.refreshAccountInterface();
+                    }
+                } else {
+                    throw new Error(deepTokenResult.error || '获取深度Token失败');
+                }
+            } catch (error) {
+                console.error('❌ 刷新Token失败:', error);
+                UIManager.showMessage(`❌ 刷新Token失败: ${error.message}`, 'error');
+                LoadingManager.hide('accountList');
+            }
+        }, '刷新账户Token');
     }
 
     static async updateCurrentStatus() {
@@ -669,6 +913,46 @@ class AccountManager {
         }
     }
 
+    static async refreshAccountInterface() {
+        // 统一的界面刷新方法，避免重复调用
+        await this.updateCurrentStatus();
+        await this.loadAccountList();
+    }
+
+    static async handleLogout() {
+        return ErrorHandler.handleAsyncError(async () => {
+            console.log('🚪 开始退出登录（仅清除Cookie）...');
+
+            // 确认操作
+            if (!confirm('确定要退出登录吗？\n\n这将清除Cookie中的认证信息，但保留本地存储的账户数据。\n您可以随时重新切换到该账户。')) {
+                return;
+            }
+
+            // 显示加载状态
+            UIManager.showMessage('正在退出登录...', 'loading');
+
+            try {
+                // 清除Cookie
+                const clearResult = await MessageManager.sendMessage('clearCookie');
+
+                if (clearResult.success) {
+                    console.log('✅ Cookie已清除');
+                    UIManager.showMessage('已退出登录，Cookie已清除', 'success');
+                } else {
+                    console.warn('⚠️ Cookie清除可能不完整:', clearResult.error);
+                    UIManager.showMessage('退出登录完成，但Cookie清除可能不完整', 'warning');
+                }
+
+                // 刷新当前状态显示（不清除Storage中的currentAccount，让用户看到状态变化）
+                await this.updateCurrentStatus();
+
+            } catch (error) {
+                console.error('❌ 退出登录失败:', error);
+                throw new Error(`退出登录失败: ${error.message}`);
+            }
+        }, '退出登录');
+    }
+
     static async handleRestoreCookie(storageAccount) {
         return ErrorHandler.handleAsyncError(async () => {
             console.log('🔧 开始恢复Cookie...', storageAccount);
@@ -725,7 +1009,7 @@ class AccountManager {
             console.log('✅ Cookie设置成功');
             UIManager.showMessage('Cookie已重新设置', 'success');
 
-            await this.updateCurrentStatus();
+            await this.refreshAccountInterface();
 
         }, '恢复Cookie').finally(() => {
             LoadingManager.hide('restoreCookieBtn');
@@ -786,8 +1070,7 @@ class App {
             DOMManager.initialize();
 
             // 初始化应用状态
-            await AccountManager.updateCurrentStatus();
-            await AccountManager.loadAccountList();
+            await AccountManager.refreshAccountInterface();
 
             // 设置事件监听器
             EventManager.setupEventListeners();
@@ -813,7 +1096,10 @@ class App {
 }
 
 // 初始化应用
-document.addEventListener('DOMContentLoaded', () => App.initialize());
+document.addEventListener('DOMContentLoaded', () => {
+    App.initialize();
+    UIEnhancementManager.init();
+});
 
 // =============================================================================
 // 事件管理模块
@@ -828,7 +1114,7 @@ class EventManager {
         if (elements.importDataBtn) elements.importDataBtn.addEventListener('click', () => DataImportManager.handleManualImport());
         if (elements.autoReadBtn) elements.autoReadBtn.addEventListener('click', () => DataImportManager.handleAutoRead());
         if (elements.processFilesBtn) elements.processFilesBtn.addEventListener('click', () => DataImportManager.handleProcessFiles());
-        if (elements.refreshAccountsBtn) elements.refreshAccountsBtn.addEventListener('click', () => AccountManager.loadAccountList());
+
         if (elements.openDashboardBtn) elements.openDashboardBtn.addEventListener('click', () => DashboardManager.openDashboard());
         if (elements.clearDataBtn) elements.clearDataBtn.addEventListener('click', () => this.handleClearData());
         if (elements.showInstallGuide) elements.showInstallGuide.addEventListener('click', () => this.handleShowInstallGuide());
@@ -893,6 +1179,8 @@ class EventManager {
             AccountManager.switchToAccount(accountIndex);
         } else if (action === 'delete') {
             AccountManager.deleteAccount(accountIndex);
+        } else if (action === 'refresh') {
+            AccountManager.refreshAccountToken(accountIndex);
         }
     }
 
@@ -905,8 +1193,7 @@ class EventManager {
             await chrome.storage.local.clear();
             UIManager.showMessage('所有数据已清空', 'success');
             AppState.setState({ accountList: [], currentAccount: null });
-            await AccountManager.updateCurrentStatus();
-            await AccountManager.loadAccountList();
+            await AccountManager.refreshAccountInterface();
         }, '清空数据');
     }
 
@@ -1013,20 +1300,66 @@ class DataImportManager {
         return ErrorHandler.handleAsyncError(async () => {
             LoadingManager.show('autoReadBtn', '🔍 正在读取...');
 
-            const result = await MessageManager.sendMessage('autoReadCursorData');
+            // 获取用户选择的token模式
+            const selectedMode = document.querySelector('input[name="tokenMode"]:checked')?.value || 'client';
+            
+            let result;
+            
+            if (selectedMode === 'client') {
+                // 客户端token模式
+                result = await MessageManager.sendMessage('autoReadCursorData');
+            }
+            /*
+            ========================================
+            无头模式逻辑 - 暂时注释掉
+            ========================================
+            原因：原生主机的无头模式实现存在问题，需要完善后再启用
+            恢复方法：取消下面的注释，并恢复HTML中的无头模式选项
+            注意：需要确保 background.js 和 native_host.py 中的相关方法也正常工作
+            ========================================
+            */
+            else if (selectedMode === 'deep_browser') {
+                // 深度token浏览器模式
+                result = await MessageManager.sendMessage('getDeepToken', {
+                    mode: selectedMode,
+                    headless: false
+                });
+            }
+            /*
+            else {
+                // 深度token模式（包含无头模式）
+                const isHeadless = selectedMode === 'deep_headless';
+                result = await MessageManager.sendMessage('getDeepToken', {
+                    mode: selectedMode,
+                    headless: isHeadless
+                });
+            }
+            */
 
-            if (result.success) {
-                UIManager.showMessage('自动读取成功！', 'success');
+            if (result.success || (result.data && !result.error)) {
+                const responseData = result.data || result;
+                
+                // 根据返回的数据处理
+                if (responseData.needBrowserAction) {
+                    // 需要浏览器操作的情况（深度token浏览器模式）
+                    await this.handleDeepTokenBrowserMode(responseData);
+                } else {
+                    // 直接处理成功的结果
+                    UIManager.showMessage(`${responseData.tokenType === 'deep' ? '深度Token' : '客户端Token'}获取成功！`, 'success');
 
-                const accountData = {
-                    email: result.data.email,
-                    userid: result.data.userid,
-                    accessToken: result.data.accessToken,
-                    WorkosCursorSessionToken: `${result.data.userid}%3A%3A${result.data.accessToken}`,
-                    createTime: new Date().toISOString()
-                };
+                    const accountData = {
+                        email: responseData.email,
+                        userid: responseData.userid,
+                        accessToken: responseData.accessToken,
+                        WorkosCursorSessionToken: responseData.WorkosCursorSessionToken || `${responseData.userid}%3A%3A${responseData.accessToken}`,
+                        createTime: responseData.createdTime || new Date().toISOString(),
+                        expiresTime: responseData.expiresTime,
+                        tokenType: responseData.tokenType || 'client',
+                        validDays: responseData.validDays
+                    };
 
-                await this.processAccountData(accountData);
+                    await this.processAccountData(accountData);
+                }
             } else {
                 if (result.needFileSelection) {
                     let errorMsg = result.error || '自动读取失败';
@@ -1048,6 +1381,247 @@ class DataImportManager {
             LoadingManager.hide('autoReadBtn');
         });
     }
+
+    static async handleDeepTokenBrowserMode(clientData) {
+        try {
+            UIManager.showMessage('正在打开深度登录窗口，请在弹出窗口中确认登录...', 'info');
+            
+            // 先设置客户端cookie，确保登录窗口可以正常工作
+            console.log('🍪 设置临时客户端Cookie以确保登录窗口正常工作...');
+            await MessageManager.sendMessage('setCookie', {
+                userid: clientData.userid,
+                accessToken: clientData.accessToken
+            });
+            
+            // 生成PKCE参数
+            const codeVerifier = this.generateCodeVerifier();
+            const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+            const uuid = this.generateUUID();
+            
+            console.log('🔑 生成PKCE参数:', { uuid, codeVerifier: codeVerifier.substring(0, 10) + '...', codeChallenge: codeChallenge.substring(0, 10) + '...' });
+            
+            // 构造深度登录URL
+            const deepLoginUrl = `https://www.cursor.com/cn/loginDeepControl?challenge=${codeChallenge}&uuid=${uuid}&mode=login`;
+            
+            // 打开新的Chrome弹窗窗口
+            const newWindow = await chrome.windows.create({ 
+                url: deepLoginUrl,
+                type: 'popup',
+                width: 900,
+                height: 700,
+                focused: true,
+                left: Math.round((screen.width - 900) / 2),
+                top: Math.round((screen.height - 700) / 2)
+            });
+            console.log('🌐 已打开深度登录窗口，窗口ID:', newWindow.id, '窗口类型: popup');
+            
+            // 更新状态提示
+            UIManager.showMessage('深度登录窗口已打开，等待用户确认登录...', 'info');
+            
+            // 直接开始轮询获取Token，不依赖标签页状态
+            const deepTokenData = await this.pollForDeepToken(uuid, codeVerifier, clientData);
+            
+            // 关闭深度登录窗口
+            try {
+                await chrome.windows.remove(newWindow.id);
+                console.log('✅ 深度登录窗口已关闭');
+            } catch (windowError) {
+                console.warn('⚠️ 关闭窗口失败:', windowError.message);
+            }
+            
+            if (deepTokenData) {
+                console.log('🎯 深度Token数据获取成功，开始保存并设置Cookie...');
+                try {
+                    // 保存深度Token数据并确保Cookie正确设置
+                    await this.saveDeepTokenData(deepTokenData);
+                    console.log('✅ 深度Token保存完成，显示成功消息');
+                    
+                    // 显示成功提示并询问用户是否打开Dashboard
+                    const expiresDate = new Date(deepTokenData.expiresTime);
+                    const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    
+                    const confirmMessage = `🎉 深度Token获取成功！\n\n` +
+                        `✅ 已保存到本地存储\n` +
+                        `🍪 已设置到Cookie\n` +
+                        `📅 有效期至：${expiresDateStr}\n\n` +
+                        `是否现在打开Cursor Dashboard验证登录状态？`;
+                    
+                    if (confirm(confirmMessage)) {
+                        console.log('🌐 用户选择打开Dashboard...');
+                        try {
+                            const result = await MessageManager.sendMessage('openDashboard');
+                            if (result && result.success) {
+                                console.log('✅ Dashboard标签页已成功打开');
+                                UIManager.showMessage('Dashboard页面已打开，请检查登录状态', 'success');
+                            } else {
+                                console.warn('⚠️ Dashboard打开响应:', result);
+                                window.open('https://www.cursor.com/cn/dashboard', '_blank');
+                                UIManager.showMessage('Dashboard页面已打开（备用方法）', 'success');
+                            }
+                        } catch (error) {
+                            console.error('❌ Dashboard打开失败:', error);
+                            window.open('https://www.cursor.com/cn/dashboard', '_blank');
+                            UIManager.showMessage('Dashboard页面已打开（备用方法）', 'success');
+                        }
+                    } else {
+                        console.log('👤 用户选择稍后手动打开Dashboard');
+                        UIManager.showMessage('深度Token已成功保存！您可以随时点击"打开Cursor Dashboard"按钮验证', 'success');
+                    }
+                    
+                } catch (saveError) {
+                    console.error('❌ 保存深度Token失败:', saveError);
+                    UIManager.showMessage(`深度Token保存失败: ${saveError.message}`, 'error');
+                    throw saveError;
+                }
+            } else {
+                throw new Error('未能获取到深度Token');
+            }
+            
+        } catch (error) {
+            console.error('深度Token浏览器模式处理失败:', error);
+            UIManager.showMessage(`深度Token获取失败: ${error.message}`, 'error');
+        }
+    }
+
+
+
+    static generateCodeVerifier() {
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        return btoa(String.fromCharCode.apply(null, array))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    }
+
+    static async generateCodeChallenge(verifier) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(verifier);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = new Uint8Array(hash);
+        return btoa(String.fromCharCode.apply(null, hashArray))
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+    }
+
+    static generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    static async pollForDeepToken(uuid, verifier, clientData) {
+        console.log('🔄 通过Background开始轮询深度Token...');
+        
+        try {
+            // 每5秒更新一次用户提示
+            const updateInterval = setInterval(() => {
+                UIManager.showMessage('正在等待登录确认...', 'info');
+            }, 5000);
+            
+            // 调用background script处理轮询（避免CORS问题）
+            const result = await MessageManager.sendMessage('pollDeepToken', {
+                uuid: uuid,
+                verifier: verifier,
+                maxAttempts: 30,
+                pollInterval: 2000
+            });
+            
+            clearInterval(updateInterval);
+            
+            console.log('📥 Background轮询结果:', result);
+            
+            if (result.success && result.data.accessToken) {
+                console.log('🎉 成功获取深度Token！');
+                
+                const deepAccessToken = result.data.accessToken;
+                const authId = result.data.authId || '';
+                
+                // 提取深度用户ID
+                let deepUserId = clientData.userid;
+                if (authId.includes('|')) {
+                    deepUserId = authId.split('|')[1];
+                }
+
+                // 创建深度token账户数据
+                const deepAccountData = {
+                    email: clientData.email,
+                    userid: deepUserId,
+                    accessToken: deepAccessToken,
+                    WorkosCursorSessionToken: `${deepUserId}%3A%3A${deepAccessToken}`,
+                    createTime: new Date().toISOString(),
+                    expiresTime: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60天后
+                    tokenType: 'deep',
+                    validDays: 60
+                };
+                
+                console.log('🎯 构造的深度Token数据:', {
+                    email: deepAccountData.email,
+                    userid: deepAccountData.userid,
+                    accessTokenLength: deepAccountData.accessToken.length,
+                    WorkosCursorSessionTokenLength: deepAccountData.WorkosCursorSessionToken.length,
+                    tokenType: deepAccountData.tokenType,
+                    expiresTime: deepAccountData.expiresTime
+                });
+
+                return deepAccountData;
+            } else {
+                console.error('❌ 获取深度Token失败:', result.error);
+                return null;
+            }
+            
+        } catch (error) {
+            console.error('❌ 轮询深度Token过程中发生错误:', error);
+            return null;
+        }
+    }
+
+    static async saveDeepTokenData(deepAccountData) {
+        console.log('💾 开始保存深度Token数据:', deepAccountData);
+        
+        try {
+            // saveToLocalStorage 现在会统一处理Storage和Cookie的保存
+            console.log('💾 调用统一的保存方法（包含Cookie设置）...');
+            const saveResult = await MessageManager.sendMessage('saveToLocalStorage', deepAccountData);
+            
+            if (!saveResult.success) {
+                throw new Error(`保存到Storage失败: ${saveResult.error}`);
+            }
+            
+            console.log('✅ 深度Token数据保存成功:', saveResult.message);
+            
+            // 如果Cookie设置失败，给出警告但不中断流程
+            if (saveResult.cookieError) {
+                console.warn('⚠️ Cookie设置失败，但数据已保存:', saveResult.cookieError);
+                UIManager.showMessage('深度Token已保存，但Cookie设置失败，请手动切换账户', 'warning');
+            } else if (saveResult.cookieSet) {
+                console.log('✅ Cookie已同步更新');
+            }
+
+            // 更新应用状态
+            console.log('🔄 更新应用状态...');
+            AppState.setState({ currentAccount: deepAccountData });
+
+            // 刷新界面
+            console.log('🔄 刷新界面...');
+            await AccountManager.refreshAccountInterface();
+            
+            console.log('✅ 深度Token数据保存完成');
+            
+        } catch (error) {
+            console.error('❌ 保存深度Token数据失败:', error);
+            throw error;
+        }
+    }
+
+
 
     static async handleProcessFiles() {
         const { uploadedJsonData } = AppState.getState();
@@ -1135,29 +1709,25 @@ class DataImportManager {
     }
 
     static async processAccountData(accountData) {
-        // 保存到localStorage
+        // 使用统一的保存方法（自动处理Storage和Cookie）
+        console.log('💾 使用统一保存方法处理账户数据...');
         const saveResult = await MessageManager.sendMessage('saveToLocalStorage', accountData);
+        
         if (!saveResult.success) {
             throw new Error(saveResult.error);
         }
 
-        // 设置Cookie
-        const cookieResult = await MessageManager.sendMessage('setCookie', {
-            userid: accountData.userid,
-            accessToken: accountData.accessToken
-        });
-        if (!cookieResult.success) {
-            throw new Error(cookieResult.error);
+        // 处理保存结果
+        if (saveResult.cookieError) {
+            console.warn('⚠️ Cookie设置失败:', saveResult.cookieError);
+            UIManager.showMessage('认证数据导入成功，但Cookie设置失败，请手动切换账户', 'warning');
+        } else {
+            UIManager.showMessage('认证数据导入成功！', 'success');
         }
 
-        UIManager.showMessage('认证数据导入成功！', 'success');
-
-        // 更新应用状态
+        // 更新应用状态并刷新界面
         AppState.setState({ currentAccount: accountData });
-
-        // 刷新界面
-        await AccountManager.updateCurrentStatus();
-        await AccountManager.loadAccountList();
+        await AccountManager.refreshAccountInterface();
 
         // 自动打开Dashboard
         setTimeout(async () => {
@@ -1237,6 +1807,76 @@ window.debugCookieStatus = () => DebugManager.debugCookieStatus();
 window.AppState = AppState;
 window.AccountManager = AccountManager;
 window.UIManager = UIManager;
+
+// =============================================================================
+// UI增强功能模块
+// =============================================================================
+class UIEnhancementManager {
+    static init() {
+        this.initCollapsibleSections();
+        this.initScrollbarAutoHide();
+    }
+
+    // 初始化可折叠区域
+    static initCollapsibleSections() {
+        const collapsibleSections = document.querySelectorAll('.collapsible-section');
+
+        collapsibleSections.forEach(section => {
+            const header = section.querySelector('h3');
+            if (header) {
+                header.addEventListener('click', () => {
+                    this.toggleSection(section);
+                });
+            }
+        });
+    }
+
+    // 切换区域折叠状态
+    static toggleSection(section) {
+        const isCollapsed = section.classList.contains('collapsed');
+
+        if (isCollapsed) {
+            section.classList.remove('collapsed');
+            console.log('📂 展开区域:', section.id);
+        } else {
+            section.classList.add('collapsed');
+            console.log('📁 折叠区域:', section.id);
+        }
+    }
+
+    // 初始化滚动条自动隐藏
+    static initScrollbarAutoHide() {
+        const accountList = document.getElementById('accountList');
+        if (!accountList) return;
+
+        let scrollTimeout;
+
+        // 滚动时显示滚动条
+        accountList.addEventListener('scroll', () => {
+            accountList.classList.add('scrolling');
+
+            // 清除之前的定时器
+            clearTimeout(scrollTimeout);
+
+            // 2秒后隐藏滚动条
+            scrollTimeout = setTimeout(() => {
+                accountList.classList.remove('scrolling');
+            }, 2000);
+        });
+
+        // 鼠标进入时显示滚动条
+        accountList.addEventListener('mouseenter', () => {
+            clearTimeout(scrollTimeout);
+        });
+
+        // 鼠标离开时隐藏滚动条
+        accountList.addEventListener('mouseleave', () => {
+            scrollTimeout = setTimeout(() => {
+                accountList.classList.remove('scrolling');
+            }, 1000);
+        });
+    }
+}
 
 
 

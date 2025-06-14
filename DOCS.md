@@ -5,6 +5,7 @@
 ### 新用户
 1. **[📦 安装指南](docs/user/installation.md)** - 5分钟快速安装
 2. **[🎯 使用指南](docs/user/usage.md)** - 三种使用方式
+3. **[🔐 长效Token指南](docs/user/long-term-token-guide.md)** - 60天长效Token使用说明
 
 ### 开发者
 1. **[🧪 测试指南](docs/developer/testing.md)** - 解决Chrome兼容性问题
@@ -15,10 +16,12 @@
 ### 👥 用户文档
 - [📦 安装指南](docs/user/installation.md) - 安装步骤和系统要求
 - [🎯 使用指南](docs/user/usage.md) - 使用方法和多账户管理
+- [🔐 长效Token指南](docs/user/long-term-token-guide.md) - 60天长效Token详细使用说明
 
 ### 👨‍💻 开发者文档
 - [🏗️ 项目架构](docs/developer/architecture.md) - 模块化架构设计
 - [🧪 测试指南](docs/developer/testing.md) - 开发测试和Chrome兼容性
+- [🔐 长效Token开发](docs/developer/long-term-token.md) - 长效Token功能技术文档
 - [🐛 Bug修复记录](docs/developer/bug-fixes.md) - 历史问题解决方案
 - [📊 重构文档](docs/developer/refactoring/) - 代码重构记录
 

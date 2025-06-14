@@ -5,10 +5,14 @@
 ### 👥 用户文档
 - **[📦 安装指南](user/installation.md)** - 快速安装和配置
 - **[🎯 使用指南](user/usage.md)** - 三种使用方式和多账户管理
+- **[🔐 长效Token指南](user/long-term-token-guide.md)** - 60天长效Token使用说明
 
 ### 👨‍💻 开发者文档
 - **[🏗️ 项目架构](developer/architecture.md)** - 模块化架构和设计原理
 - **[🧪 测试指南](developer/testing.md)** - 开发测试和Chrome兼容性
+- **[🔐 长效Token开发](developer/long-term-token.md)** - 长效Token功能技术文档
+- **[🔄 Python到JavaScript实现](developer/python-to-javascript-implementation.md)** - 实现对比和技术细节
+- **[🐛 错误修复总结](developer/ERROR_FIX_SUMMARY.md)** - substring错误修复和防御性编程
 - **[🐛 Bug修复记录](developer/bug-fixes.md)** - 历史问题和解决方案
 - **[📊 重构文档](developer/refactoring/)** - 代码重构和优化记录
 
@@ -34,7 +38,9 @@
 
 | 版本 | 主要文档更新 |
 |------|-------------|
-| v1.2.0 | 新增测试指南、架构文档、Chrome兼容性解决方案 |
+| v1.4.0 | **UI优化功能文档**、Toast通知系统说明、无头模式禁用文档 |
+| v1.3.0 | **长效Token管理功能完整文档**、文档结构优化、重复内容清理 |
+| v1.2.0 | 长效Token功能、测试指南、架构文档、Chrome兼容性解决方案 |
 | v1.1.0 | 重构文档、优化记录 |
 | v1.0.0 | 基础用户文档、安装指南 |
 
