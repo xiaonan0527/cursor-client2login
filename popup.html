@@ -84,6 +84,60 @@
             opacity: 0;
             margin-bottom: 0;
         }
+
+        /* 方案1：脉冲动画增强 */
+        .collapsible-section.collapsed .collapse-icon {
+            animation: pulse-hint 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-hint {
+            0%, 100% {
+                opacity: 0.7;
+                transform: rotate(-90deg) scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: rotate(-90deg) scale(1.1);
+            }
+        }
+
+        /* 悬停时停止动画 */
+        .collapsible-section h3:hover .collapse-icon {
+            animation: none !important;
+            opacity: 1;
+        }
+
+        /* 展开后停止脉冲动画 */
+        .collapsible-section:not(.collapsed) .collapse-icon {
+            animation: none;
+        }
+
+        /* 方案2：标题内容布局 */
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 方案2：文字提示样式 */
+        .expand-hint {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 400;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .collapsible-section h3:hover .expand-hint {
+            opacity: 1;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* 展开状态下隐藏提示文字 */
+        .collapsible-section:not(.collapsed) .expand-hint {
+            opacity: 0;
+            transform: scale(0.8);
+        }
         
         .input-group {
             margin-bottom: 15px;
@@ -903,7 +957,13 @@
         
         <!-- 导入方法选择 -->
         <div class="section collapsible-section collapsed" id="importSection">
-            <h3>📥 导入认证数据 <span class="collapse-icon">🔽</span></h3>
+            <h3>
+                <div class="header-content">
+                    <span>📥 导入认证数据</span>
+                    <small class="expand-hint">点击展开</small>
+                </div>
+                <span class="collapse-icon">🔽</span>
+            </h3>
             <div class="collapsible-content">
             <div class="method-tabs">
                 <button class="method-tab active" data-method="auto">🤖 自动读取</button>
