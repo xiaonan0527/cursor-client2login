@@ -159,7 +159,7 @@ class DOMManager {
             autoReadBtn: document.getElementById('autoReadBtn'),
             processFilesBtn: document.getElementById('processFilesBtn'),
             accountList: document.getElementById('accountList'),
-            refreshAccountsBtn: document.getElementById('refreshAccountsBtn'),
+
             openDashboardBtn: document.getElementById('openDashboardBtn'),
             clearDataBtn: document.getElementById('clearDataBtn'),
             jsonDropZone: document.getElementById('jsonDropZone'),
@@ -223,6 +223,65 @@ class UIManager {
     static showMessage(message, type = 'info', duration = null) {
         console.log(`📝 显示消息 [${type}]:`, message);
 
+        // 使用Toast通知替代原有的消息区域
+        this.showToast(message, type, duration);
+    }
+
+    static showToast(message, type = 'info', duration = null) {
+        try {
+            // 创建Toast元素
+            const toast = document.createElement('div');
+            toast.className = `toast-notification ${type}`;
+            toast.textContent = message;
+            toast.style.whiteSpace = 'pre-line';
+
+            // 获取或创建Toast容器
+            let toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toastContainer';
+                document.body.appendChild(toastContainer);
+            }
+
+            // 添加到容器
+            toastContainer.appendChild(toast);
+
+            // 显示Toast（延迟一帧以确保CSS过渡生效）
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // 根据消息类型调整自动清除时间
+            const clearTime = duration || (type === 'error' ? 8000 : type === 'loading' ? 0 : 3000);
+
+            if (clearTime > 0) {
+                setTimeout(() => {
+                    this.hideToast(toast);
+                }, clearTime);
+            }
+
+            console.log('✅ Toast通知已显示');
+            return toast;
+        } catch (error) {
+            console.error('❌ 显示Toast通知时发生错误:', error);
+            // 降级到原有的消息显示方式
+            this.showLegacyMessage(message, type, duration);
+        }
+    }
+
+    static hideToast(toast) {
+        if (!toast || !toast.parentNode) return;
+
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 300); // 等待CSS过渡完成
+    }
+
+    static showLegacyMessage(message, type = 'info', duration = null) {
+        // 保留原有的消息显示方式作为降级方案
         const messageArea = DOMManager.get('messageArea');
         if (!messageArea) {
             console.error('❌ messageArea DOM元素未找到');
@@ -254,13 +313,21 @@ class UIManager {
                 }, clearTime);
             }
 
-            console.log('✅ 消息已显示到页面');
+            console.log('✅ 降级消息已显示到页面');
         } catch (error) {
-            console.error('❌ 显示消息时发生错误:', error);
+            console.error('❌ 显示降级消息时发生错误:', error);
         }
     }
 
     static clearMessage() {
+        // 清除Toast通知
+        const toastContainer = document.getElementById('toastContainer');
+        if (toastContainer) {
+            const toasts = toastContainer.querySelectorAll('.toast-notification');
+            toasts.forEach(toast => this.hideToast(toast));
+        }
+
+        // 清除传统消息区域
         const messageArea = DOMManager.get('messageArea');
         if (messageArea) {
             messageArea.innerHTML = '';
@@ -333,12 +400,24 @@ class UIManager {
             }
             
             currentStatus.innerHTML = `
+                <button id="logoutBtn" class="logout-btn" title="退出登录（仅清除Cookie）">退出</button>
                 <span class="status-icon">✅</span>
                 <div class="status-title">当前账户</div>
                 <div class="status-email">${storageAccount.email}</div>
                 <div class="status-userid">${storageAccount.userid}</div>
                 <div class="status-note">${statusNote}</div>
             `;
+
+            // 添加退出按钮事件监听器
+            setTimeout(() => {
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.handleLogout();
+                    });
+                }
+            }, 100);
         } else if (cookieStatus.hasCookie && cookieStatus.cookieData && !cookieStatus.cookieData.isExpired) {
             // Cookie存在且有效，但与storage不一致
             this.updateStatusWithCookie(currentStatus, cookieStatus.cookieData);
@@ -433,7 +512,7 @@ class UIManager {
         }
 
         if (accounts.length === 0) {
-            accountList.innerHTML = '<div class="loading">暂无保存的账户</div>';
+            accountList.innerHTML = '<div class="empty-state">暂无保存的账户<br><small>请先导入账户数据</small></div>';
             return;
         }
 
@@ -840,6 +919,40 @@ class AccountManager {
         await this.loadAccountList();
     }
 
+    static async handleLogout() {
+        return ErrorHandler.handleAsyncError(async () => {
+            console.log('🚪 开始退出登录（仅清除Cookie）...');
+
+            // 确认操作
+            if (!confirm('确定要退出登录吗？\n\n这将清除Cookie中的认证信息，但保留本地存储的账户数据。\n您可以随时重新切换到该账户。')) {
+                return;
+            }
+
+            // 显示加载状态
+            UIManager.showMessage('正在退出登录...', 'loading');
+
+            try {
+                // 清除Cookie
+                const clearResult = await MessageManager.sendMessage('clearCookie');
+
+                if (clearResult.success) {
+                    console.log('✅ Cookie已清除');
+                    UIManager.showMessage('已退出登录，Cookie已清除', 'success');
+                } else {
+                    console.warn('⚠️ Cookie清除可能不完整:', clearResult.error);
+                    UIManager.showMessage('退出登录完成，但Cookie清除可能不完整', 'warning');
+                }
+
+                // 刷新当前状态显示（不清除Storage中的currentAccount，让用户看到状态变化）
+                await this.updateCurrentStatus();
+
+            } catch (error) {
+                console.error('❌ 退出登录失败:', error);
+                throw new Error(`退出登录失败: ${error.message}`);
+            }
+        }, '退出登录');
+    }
+
     static async handleRestoreCookie(storageAccount) {
         return ErrorHandler.handleAsyncError(async () => {
             console.log('🔧 开始恢复Cookie...', storageAccount);
@@ -983,7 +1096,10 @@ class App {
 }
 
 // 初始化应用
-document.addEventListener('DOMContentLoaded', () => App.initialize());
+document.addEventListener('DOMContentLoaded', () => {
+    App.initialize();
+    UIEnhancementManager.init();
+});
 
 // =============================================================================
 // 事件管理模块
@@ -998,7 +1114,7 @@ class EventManager {
         if (elements.importDataBtn) elements.importDataBtn.addEventListener('click', () => DataImportManager.handleManualImport());
         if (elements.autoReadBtn) elements.autoReadBtn.addEventListener('click', () => DataImportManager.handleAutoRead());
         if (elements.processFilesBtn) elements.processFilesBtn.addEventListener('click', () => DataImportManager.handleProcessFiles());
-        if (elements.refreshAccountsBtn) elements.refreshAccountsBtn.addEventListener('click', () => AccountManager.loadAccountList());
+
         if (elements.openDashboardBtn) elements.openDashboardBtn.addEventListener('click', () => DashboardManager.openDashboard());
         if (elements.clearDataBtn) elements.clearDataBtn.addEventListener('click', () => this.handleClearData());
         if (elements.showInstallGuide) elements.showInstallGuide.addEventListener('click', () => this.handleShowInstallGuide());
@@ -1672,6 +1788,76 @@ window.debugCookieStatus = () => DebugManager.debugCookieStatus();
 window.AppState = AppState;
 window.AccountManager = AccountManager;
 window.UIManager = UIManager;
+
+// =============================================================================
+// UI增强功能模块
+// =============================================================================
+class UIEnhancementManager {
+    static init() {
+        this.initCollapsibleSections();
+        this.initScrollbarAutoHide();
+    }
+
+    // 初始化可折叠区域
+    static initCollapsibleSections() {
+        const collapsibleSections = document.querySelectorAll('.collapsible-section');
+
+        collapsibleSections.forEach(section => {
+            const header = section.querySelector('h3');
+            if (header) {
+                header.addEventListener('click', () => {
+                    this.toggleSection(section);
+                });
+            }
+        });
+    }
+
+    // 切换区域折叠状态
+    static toggleSection(section) {
+        const isCollapsed = section.classList.contains('collapsed');
+
+        if (isCollapsed) {
+            section.classList.remove('collapsed');
+            console.log('📂 展开区域:', section.id);
+        } else {
+            section.classList.add('collapsed');
+            console.log('📁 折叠区域:', section.id);
+        }
+    }
+
+    // 初始化滚动条自动隐藏
+    static initScrollbarAutoHide() {
+        const accountList = document.getElementById('accountList');
+        if (!accountList) return;
+
+        let scrollTimeout;
+
+        // 滚动时显示滚动条
+        accountList.addEventListener('scroll', () => {
+            accountList.classList.add('scrolling');
+
+            // 清除之前的定时器
+            clearTimeout(scrollTimeout);
+
+            // 2秒后隐藏滚动条
+            scrollTimeout = setTimeout(() => {
+                accountList.classList.remove('scrolling');
+            }, 2000);
+        });
+
+        // 鼠标进入时显示滚动条
+        accountList.addEventListener('mouseenter', () => {
+            clearTimeout(scrollTimeout);
+        });
+
+        // 鼠标离开时隐藏滚动条
+        accountList.addEventListener('mouseleave', () => {
+            scrollTimeout = setTimeout(() => {
+                accountList.classList.remove('scrolling');
+            }, 1000);
+        });
+    }
+}
 
 
 
