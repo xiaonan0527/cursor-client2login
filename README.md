@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
 ![Chrome Extension](https://img.shields.io/badge/chrome-extension-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
@@ -25,6 +25,7 @@
 - **🍪 智能Cookie状态验证与恢复** - 实时检测Cookie状态（过期/清除）并提供一键恢复
 - **🔐 长效Token管理** - 支持获取60天有效期的长效Token，解决客户端退出后Token失效问题
 - **🔒 CSP安全合规** - 移除内联脚本，完全符合Chrome扩展内容安全策略
+- **🎨 现代化UI体验** - Toast通知系统、可折叠界面、智能滚动条，提供流畅的用户体验
 
 ### 🛠️ 技术特性
 - **🏗️ 模块化架构** - 12个功能模块，清晰的职责分离，95%可维护性提升
@@ -34,9 +35,10 @@
 - **🔧 调试工具** - 丰富的调试接口，实时状态查看
 - **🌐 跨平台支持** - 完全(bushi)支持Windows、macOS、Linux(目前只测试了macOS ,Windows没有机器，我就没有测试)
 - **🔗 原生主机通信** - 通过原生主机程序安全读取本地文件
-- **🎯 现代化UI** - 美观的Material Design风格界面
+- **🎯 现代化UI** - 美观的Material Design风格界面，Toast通知系统
 - **🛡️ 数据安全** - 所有数据仅在本地处理，不上传任何服务器
 - **📊 状态管理** - 集中式应用状态管理，数据流清晰
+- **✨ 智能交互** - 可折叠界面、自动隐藏滚动条、柔和视觉设计
 
 ## 📸 扩展ID获取指南
 
@@ -544,7 +546,15 @@ git push origin feature/AmazingFeature
 
 ## 📝 更新日志
 
-### v1.3.0 (当前开发版本)
+### v1.4.0 (当前开发版本)
+- ✅ **UI体验优化** - 浮动Toast通知系统，避免界面布局跳动
+- ✅ **可折叠导入区域** - 导入数据区域支持折叠，界面更简洁
+- ✅ **智能滚动条** - 已保存账户列表滚动条自动隐藏
+- ✅ **无头模式暂时禁用** - 注释无头模式相关代码，保留完整恢复方案
+- ✅ **柔和视觉设计** - 降低UI对比度，提供更舒适的视觉体验
+- ✅ **现代化交互** - 微动画效果和渐变设计，提升用户体验
+
+### v1.3.0
 - ✅ **长效Token管理功能** - 支持获取60天有效期的深度Token
 - ✅ **混合模式架构** - background.js + popup.js协同处理
 - ✅ **自动Token升级** - 客户端Token自动转换为长效Token
@@ -583,7 +593,8 @@ git push origin feature/AmazingFeature
 
 | 版本 | 日期 | 关键更新 |
 |------|------|-----------|
-| 1.3.0 | 2025-01-XX | **🔐 长效Token管理版本**<br>**长效Token功能**：支持获取60天有效期的深度Token<br>**混合架构**：background.js + popup.js协同处理Token获取<br>**自动升级**：客户端Token自动转换为长效Token<br>**浏览器模式**：支持用户手动确认授权<br>**文档优化**：重新整理文档结构，删除重复内容 |
+| 1.4.0 | 2025-06-14 | **🎨 UI体验优化版本**<br>**Toast通知系统**：浮动通知避免界面布局跳动<br>**可折叠界面**：导入数据区域支持折叠，界面更简洁<br>**智能滚动条**：自动隐藏滚动条，视觉更干净<br>**柔和设计**：降低对比度，提供舒适的视觉体验<br>**无头模式优化**：暂时禁用有问题的功能，保留完整恢复方案 |
+| 1.3.0 | 2025-06-13 | **🔐 长效Token管理版本**<br>**长效Token功能**：支持获取60天有效期的深度Token<br>**混合架构**：background.js + popup.js协同处理Token获取<br>**自动升级**：客户端Token自动转换为长效Token<br>**浏览器模式**：支持用户手动确认授权<br>**文档优化**：重新整理文档结构，删除重复内容 |
 | 1.2.0 | 2025-06-13 | **🚀 重大重构与优化版本**<br>**代码重构**：将1000+行代码重构为12个功能模块<br>**错误处理优化**：实现智能错误分类和用户友好提示<br>**数据库处理增强**：完善连接失败处理和文件权限检查<br>**Chrome兼容性**：解决__pycache__导致的扩展加载问题<br>**测试管理**：智能测试管理器和独立测试环境<br>**用户体验**：加载状态管理和响应式UI反馈 |
 | 1.1.0 | 2025-06-12 | 1) 修复CSP违规，移除内联事件处理器<br>2) manifest.json 新增 cursor.com / *.cursor.com Host 权限<br>3) 新增智能 Cookie 恢复按钮，自动从 storage 或原生主机获取 token 并重写 Cookie<br>4) 移除调试按钮，界面更简洁 |
 | 1.0.0 | 2025-06-10 | 初始版本，支持自动读取、文件上传、手动输入及多账户管理 |
