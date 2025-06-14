@@ -900,14 +900,9 @@ class NativeHostServer:
             # 添加调试日志
             self.log_debug(f"原生主机启动 (使用nativemessaging: {self.use_nativemessaging})")
 
-            if self.use_nativemessaging:
-                # 使用 nativemessaging 库的方式
-                self.log_debug("使用 nativemessaging 库处理消息")
-                message = self.get_message()
-            else:
-                # 使用手动实现的方式
-                self.log_debug("使用手动实现处理消息")
-                message = self.get_message()
+            # get_message方法已经处理了nativemessaging的选择逻辑
+            self.log_debug(f"使用{'nativemessaging库' if self.use_nativemessaging else '手动实现'}处理消息")
+            message = self.get_message()
 
             self.log_debug(f"收到消息: {message}")
 

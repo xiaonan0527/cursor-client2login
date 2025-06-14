@@ -6,38 +6,45 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('Cursor Client2Login 插件已安装');
 });
 
-// 处理来自popup的消息
+// 消息处理器映射
+const messageHandlers = {
+  'getCursorData': getCursorAuthData,
+  'autoReadCursorData': autoReadCursorData,
+  'saveToLocalStorage': (data) => saveToLocalStorage(data),
+  'setCookie': (data) => setCursorCookie(data),
+  'clearCookie': clearCursorCookie,
+  'openDashboard': openCursorDashboard,
+  'getCurrentCookieStatus': getCurrentCookieStatus,
+  'validateCurrentAccountStatus': validateCurrentAccountStatus,
+  'getDeepToken': (data) => getDeepToken(data),
+  'pollDeepToken': (data) => pollDeepToken(data),
+  'getAccountList': () => chrome.storage.local.get(['accountList']).then(result => ({ accountList: result.accountList || [] })),
+  'getCurrentAccount': () => chrome.storage.local.get(['currentAccount']).then(result => ({ currentAccount: result.currentAccount || null })),
+  'switchAccount': (data) => switchAccount(data),
+  'parseFileContent': (data) => parseFileContent(data.content, data.fileType)
+};
+
+// 统一的消息处理器
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'getCursorData') {
-    getCursorAuthData().then(sendResponse);
-    return true; // 保持消息通道开启
-  } else if (request.action === 'autoReadCursorData') {
-    autoReadCursorData().then(sendResponse);
-    return true;
-  } else if (request.action === 'saveToLocalStorage') {
-    saveToLocalStorage(request.data).then(sendResponse);
-    return true;
-  } else if (request.action === 'setCookie') {
-    setCursorCookie(request.data).then(sendResponse);
-    return true;
-  } else if (request.action === 'clearCookie') {
-    clearCursorCookie().then(sendResponse);
-    return true;
-  } else if (request.action === 'openDashboard') {
-    openCursorDashboard().then(sendResponse);
-    return true;
-  } else if (request.action === 'getCurrentCookieStatus') {
-    getCurrentCookieStatus().then(sendResponse);
-    return true;
-  } else if (request.action === 'validateCurrentAccountStatus') {
-    validateCurrentAccountStatus().then(sendResponse);
-    return true;
-  } else if (request.action === 'getDeepToken') {
-    getDeepToken(request.data).then(sendResponse);
-    return true;
-  } else if (request.action === 'pollDeepToken') {
-    pollDeepToken(request.data).then(sendResponse);
-    return true;
+  const handler = messageHandlers[request.action];
+
+  if (handler) {
+    const result = handler(request.data);
+
+    // 如果返回Promise，等待结果
+    if (result && typeof result.then === 'function') {
+      result.then(sendResponse).catch(error => {
+        console.error(`处理${request.action}时发生错误:`, error);
+        sendResponse({ success: false, error: error.message });
+      });
+      return true; // 保持消息通道开启
+    } else {
+      // 同步结果直接返回
+      sendResponse(result);
+    }
+  } else {
+    console.warn('未知的消息类型:', request.action);
+    sendResponse({ success: false, error: '未知的消息类型' });
   }
 });
 
@@ -494,26 +501,7 @@ async function openCursorDashboard() {
   }
 }
 
-// 处理从content script的消息
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'getAccountList') {
-    chrome.storage.local.get(['accountList']).then(result => {
-      sendResponse({ accountList: result.accountList || [] });
-    });
-    return true;
-  } else if (request.action === 'getCurrentAccount') {
-    chrome.storage.local.get(['currentAccount']).then(result => {
-      sendResponse({ currentAccount: result.currentAccount || null });
-    });
-    return true;
-  } else if (request.action === 'switchAccount') {
-    switchAccount(request.accountData).then(sendResponse);
-    return true;
-  } else if (request.action === 'parseFileContent') {
-    parseFileContent(request.content, request.fileType).then(sendResponse);
-    return true;
-  }
-});
+// 注意：消息处理已在上面的统一处理器中合并，此处删除重复代码
 
 // 切换账户
 async function switchAccount(accountData) {

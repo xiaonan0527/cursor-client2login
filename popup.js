@@ -624,8 +624,7 @@ class AccountManager {
                     await chrome.storage.local.set({ currentAccount: account });
                     AppState.setState({ currentAccount: account });
 
-                    await this.updateCurrentStatus();
-                    await this.loadAccountList();
+                    await this.refreshAccountInterface();
 
                     setTimeout(async () => {
                         await DashboardManager.openDashboard();
@@ -683,8 +682,7 @@ class AccountManager {
                     currentAccount: isCurrentAccount ? null : currentAccount
                 });
 
-                await this.updateCurrentStatus();
-                await this.loadAccountList();
+                await this.refreshAccountInterface();
             }
         }, '删除账户');
     }
@@ -724,18 +722,13 @@ class AccountManager {
                         UIManager.showMessage('🌐 正在打开浏览器页面，请确认登录...', 'info');
                         
                         // handleDeepTokenBrowserMode 会完成所有必要的保存和Cookie设置
-                        // 我们不需要再次强制更新Cookie
                         await DataImportManager.handleDeepTokenBrowserMode(responseData);
-                        
+
                         console.log('✅ 深度Token浏览器模式完成，账户信息已自动更新');
                         UIManager.showMessage(`✅ 账户 ${account.email} 的深度Token已刷新完成`, 'success');
-                        
-                        // 重新加载账户列表和更新状态
-                        setTimeout(async () => {
-                            await this.updateCurrentStatus();
-                            await this.loadAccountList();
-                            LoadingManager.hide('accountList');
-                        }, 1000); // 减少等待时间，因为handleDeepTokenBrowserMode已经完成了所有工作
+
+                        // 刷新界面（handleDeepTokenBrowserMode已经完成了状态更新）
+                        LoadingManager.hide('accountList');
                     } else {
                         // 直接获取到了深度Token
                         const updatedAccount = {
@@ -751,14 +744,14 @@ class AccountManager {
                         // 使用统一的保存方法，自动处理Storage和Cookie的同步
                         console.log('🔄 使用统一保存方法更新账户Token...');
                         const saveResult = await MessageManager.sendMessage('saveToLocalStorage', updatedAccount);
-                        
+
                         if (!saveResult.success) {
                             throw new Error(`保存更新的账户失败: ${saveResult.error}`);
                         }
 
                         console.log('✅ 账户Token已通过统一方法更新:', saveResult.message);
-                        
-                        // 处理Cookie设置结果
+
+                        // 处理Cookie设置结果并显示消息
                         if (saveResult.cookieError) {
                             console.warn('⚠️ Cookie设置失败:', saveResult.cookieError);
                             UIManager.showMessage(`✅ 账户 ${account.email} 的Token已刷新为深度Token，但Cookie设置失败`, 'warning');
@@ -767,11 +760,9 @@ class AccountManager {
                             UIManager.showMessage(`✅ 账户 ${account.email} 的Token已刷新为深度Token（60天有效期）`, 'success');
                         }
 
-                        // 更新应用状态
+                        // 更新应用状态并刷新界面
                         AppState.setState({ currentAccount: updatedAccount });
-
-                        await this.updateCurrentStatus();
-                        await this.loadAccountList();
+                        await this.refreshAccountInterface();
                     }
                 } else {
                     throw new Error(deepTokenResult.error || '获取深度Token失败');
@@ -843,6 +834,12 @@ class AccountManager {
         }
     }
 
+    static async refreshAccountInterface() {
+        // 统一的界面刷新方法，避免重复调用
+        await this.updateCurrentStatus();
+        await this.loadAccountList();
+    }
+
     static async handleRestoreCookie(storageAccount) {
         return ErrorHandler.handleAsyncError(async () => {
             console.log('🔧 开始恢复Cookie...', storageAccount);
@@ -899,7 +896,7 @@ class AccountManager {
             console.log('✅ Cookie设置成功');
             UIManager.showMessage('Cookie已重新设置', 'success');
 
-            await this.updateCurrentStatus();
+            await this.refreshAccountInterface();
 
         }, '恢复Cookie').finally(() => {
             LoadingManager.hide('restoreCookieBtn');
@@ -960,8 +957,7 @@ class App {
             DOMManager.initialize();
 
             // 初始化应用状态
-            await AccountManager.updateCurrentStatus();
-            await AccountManager.loadAccountList();
+            await AccountManager.refreshAccountInterface();
 
             // 设置事件监听器
             EventManager.setupEventListeners();
@@ -1081,8 +1077,7 @@ class EventManager {
             await chrome.storage.local.clear();
             UIManager.showMessage('所有数据已清空', 'success');
             AppState.setState({ accountList: [], currentAccount: null });
-            await AccountManager.updateCurrentStatus();
-            await AccountManager.loadAccountList();
+            await AccountManager.refreshAccountInterface();
         }, '清空数据');
     }
 
@@ -1303,7 +1298,7 @@ class DataImportManager {
                 console.log('🎯 深度Token数据获取成功，开始保存并设置Cookie...');
                 try {
                     // 保存深度Token数据并确保Cookie正确设置
-                    await this.saveDeepTokenData(deepTokenData, true); // 传递强制更新Cookie的标志
+                    await this.saveDeepTokenData(deepTokenData);
                     console.log('✅ 深度Token保存完成，显示成功消息');
                     
                     // 显示成功提示并询问用户是否打开Dashboard
@@ -1453,7 +1448,7 @@ class DataImportManager {
         }
     }
 
-    static async saveDeepTokenData(deepAccountData, forceUpdateCookie = false) {
+    static async saveDeepTokenData(deepAccountData) {
         console.log('💾 开始保存深度Token数据:', deepAccountData);
         
         try {
@@ -1481,8 +1476,7 @@ class DataImportManager {
 
             // 刷新界面
             console.log('🔄 刷新界面...');
-            await AccountManager.updateCurrentStatus();
-            await AccountManager.loadAccountList();
+            await AccountManager.refreshAccountInterface();
             
             console.log('✅ 深度Token数据保存完成');
             
@@ -1596,12 +1590,9 @@ class DataImportManager {
             UIManager.showMessage('认证数据导入成功！', 'success');
         }
 
-        // 更新应用状态
+        // 更新应用状态并刷新界面
         AppState.setState({ currentAccount: accountData });
-
-        // 刷新界面
-        await AccountManager.updateCurrentStatus();
-        await AccountManager.loadAccountList();
+        await AccountManager.refreshAccountInterface();
 
         // 自动打开Dashboard
         setTimeout(async () => {
