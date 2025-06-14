@@ -1308,14 +1308,33 @@ class DataImportManager {
             if (selectedMode === 'client') {
                 // 客户端token模式
                 result = await MessageManager.sendMessage('autoReadCursorData');
-            } else {
-                // 深度token模式
-                const isHeadless = selectedMode === 'deep_headless';
-                result = await MessageManager.sendMessage('getDeepToken', { 
+            }
+            /*
+            ========================================
+            无头模式逻辑 - 暂时注释掉
+            ========================================
+            原因：原生主机的无头模式实现存在问题，需要完善后再启用
+            恢复方法：取消下面的注释，并恢复HTML中的无头模式选项
+            注意：需要确保 background.js 和 native_host.py 中的相关方法也正常工作
+            ========================================
+            */
+            else if (selectedMode === 'deep_browser') {
+                // 深度token浏览器模式
+                result = await MessageManager.sendMessage('getDeepToken', {
                     mode: selectedMode,
-                    headless: isHeadless 
+                    headless: false
                 });
             }
+            /*
+            else {
+                // 深度token模式（包含无头模式）
+                const isHeadless = selectedMode === 'deep_headless';
+                result = await MessageManager.sendMessage('getDeepToken', {
+                    mode: selectedMode,
+                    headless: isHeadless
+                });
+            }
+            */
 
             if (result.success || (result.data && !result.error)) {
                 const responseData = result.data || result;

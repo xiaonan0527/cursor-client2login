@@ -721,17 +721,34 @@ async function getCurrentCookieStatus() {
 async function getDeepToken(params = {}) {
   try {
     console.log('开始获取深度Token...', params);
-    
+
+    /*
+    ========================================
+    无头模式逻辑 - 暂时注释掉
+    ========================================
+    原因：原生主机的无头模式实现存在问题，需要完善后再启用
+    恢复方法：取消下面的注释，并确保 native_host.py 中的相关方法正常工作
+    注意：目前只支持浏览器模式(deep_browser)，无头模式(deep_headless)暂时禁用
+    ========================================
+    */
+
+    // 检查模式，暂时只支持浏览器模式
+    const mode = params.mode || 'deep_browser';
+    if (mode === 'deep_headless') {
+      console.warn('⚠️ 无头模式暂时禁用，自动切换到浏览器模式');
+      params.mode = 'deep_browser';
+    }
+
     const message = {
       action: 'getClientCurrentData',
       params: {
-        mode: params.mode || 'deep_headless'
+        mode: params.mode || 'deep_browser'  // 默认使用浏览器模式
       }
     };
-    
+
     const nativeResult = await sendNativeMessage(message);
     console.log('深度Token原生主机响应:', nativeResult);
-    
+
     if (nativeResult && !nativeResult.error) {
       console.log('深度Token获取成功');
       return {

@@ -927,11 +927,25 @@
                             <span>🔗 客户端Token (有效期未知)</span>
                             <div class="mode-desc">直接使用Cursor客户端Token，有效期未知</div>
                         </label>
+                        <!--
+                        ========================================
+                        无头模式UI - 暂时注释掉
+                        ========================================
+                        原因：原生主机的无头模式实现存在问题，需要完善后再启用
+                        恢复方法：取消下面的注释即可恢复无头模式选项
+                        相关文件：
+                        - popup.js 中的 handleAutoRead 方法
+                        - background.js 中的 getDeepToken 方法
+                        - native_host.py 中的 DeepTokenManager.get_deep_token_headless 方法
+                        ========================================
+                        -->
+                        <!--
                         <label class="radio-option">
                             <input type="radio" name="tokenMode" value="deep_headless">
                             <span>🤖 新深度Token-无头模式 (60天有效期)</span>
                             <div class="mode-desc">自动获取深度Token，无需用户交互，有效期60天</div>
                         </label>
+                        -->
                         <label class="radio-option">
                             <input type="radio" name="tokenMode" value="deep_browser">
                             <span>🌐 新深度Token-浏览器模式 (60天有效期)</span>

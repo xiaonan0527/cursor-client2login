@@ -443,12 +443,23 @@ class DeepTokenManager:
     def get_deep_token_headless(cls, access_token: str, userid: str, max_attempts: int = 5) -> Dict[str, Any]:
         """
         无头模式获取深度token
-        
+
+        ========================================
+        此方法暂时被禁用
+        ========================================
+        原因：无头模式实现存在问题，需要完善后再启用
+        恢复方法：修复下面的实现逻辑，并取消相关调用处的注释
+        相关文件：
+        - popup.html 中的无头模式选项
+        - popup.js 中的 handleAutoRead 方法
+        - background.js 中的 getDeepToken 方法
+        ========================================
+
         Args:
             access_token: 客户端访问token
             userid: 用户ID
             max_attempts: 最大尝试次数
-            
+
         Returns:
             Dict[str, Any]: 包含深度token信息或错误信息的字典
         """
@@ -574,13 +585,14 @@ class GetDeepTokenHandler(BaseActionHandler):
     def handle(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
         获取深度token
-        
+
         params应包含:
-        - headless: bool, 是否使用无头模式 (默认True)
         - access_token: str, 客户端访问token (可选，如果不提供则自动获取)
         - userid: str, 用户ID (可选，如果不提供则自动获取)
+
+        注意：headless参数暂时禁用，强制使用浏览器模式
         """
-        headless = params.get("headless", True)
+        # headless = params.get("headless", True)  # 暂时注释掉，强制使用浏览器模式
         access_token = params.get("access_token")
         userid = params.get("userid")
         
@@ -608,14 +620,25 @@ class GetDeepTokenHandler(BaseActionHandler):
                 ]
             }
         
-        if headless:
-            # 无头模式：使用Python脚本获取深度token
-            return DeepTokenManager.get_deep_token_headless(access_token, userid)
-        else:
+        #
+        # ========================================
+        # 无头模式逻辑 - 暂时注释掉
+        # ========================================
+        # 原因：无头模式实现存在问题，需要完善后再启用
+        # 恢复方法：取消下面的注释，并确保 DeepTokenManager.get_deep_token_headless 方法正常工作
+        # ========================================
+        #
+        # if headless:
+        #     # 无头模式：使用Python脚本获取深度token
+        #     return DeepTokenManager.get_deep_token_headless(access_token, userid)
+        # else:
+
+        # 暂时强制使用浏览器模式
+        if True:  # 原来是 if not headless，现在强制进入浏览器模式
             # 非无头模式：返回客户端token，让插件处理
             # 在非无头模式下，插件会使用浏览器打开深度登录页面
             created_time = datetime.now()
-            
+
             return {
                 "success": True,
                 "accessToken": access_token,
@@ -712,13 +735,22 @@ class GetClientCurrentDataHandler(BaseActionHandler):
                 "tokenType": "client",
                 "success": True
             }
-        elif mode == "deep_headless":
-            # 无头模式获取深度token
-            deep_result = DeepTokenManager.get_deep_token_headless(access_token, userid)
-            if deep_result.get("success"):
-                # 添加email信息
-                deep_result["email"] = email
-            return deep_result
+        #
+        # ========================================
+        # 无头模式逻辑 - 暂时注释掉
+        # ========================================
+        # 原因：无头模式实现存在问题，需要完善后再启用
+        # 恢复方法：取消下面的注释，并确保 DeepTokenManager.get_deep_token_headless 方法正常工作
+        # 相关方法：DeepTokenManager.get_deep_token_headless
+        # ========================================
+        #
+        # elif mode == "deep_headless":
+        #     # 无头模式获取深度token
+        #     deep_result = DeepTokenManager.get_deep_token_headless(access_token, userid)
+        #     if deep_result.get("success"):
+        #         # 添加email信息
+        #         deep_result["email"] = email
+        #     return deep_result
         elif mode == "deep_browser":
             # 返回客户端数据，标识需要浏览器操作
             created_time = datetime.now()
