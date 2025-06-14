@@ -2,7 +2,7 @@
 
 ## 📋 文档概览
 
-本目录包含了Cursor Client2Login项目的重构和优化相关文档，记录了从v1.0.0到v1.2.0的完整优化过程。
+本目录包含了Cursor Client2Login项目的重构和优化相关文档，记录了从v1.0.0到v1.3.0的完整优化过程。
 
 ## 📄 文档列表
 
@@ -67,6 +67,7 @@
 | v1.0.0 | 初始版本 | - |
 | v1.1.0 | 代码重构 | REFACTORING_SUMMARY.md |
 | v1.2.0 | 错误处理优化 + Chrome兼容性 | OPTIMIZATION_SUMMARY_v1.2.0.md |
+| v1.3.0 | 长效Token管理 + 文档优化 | - |
 
 ## 🔧 快速开始
 
@@ -75,7 +76,7 @@
 python3 test_manager.py
 
 # 2. 查看详细文档
-cat "augment_code重构/OPTIMIZATION_SUMMARY_v1.2.0.md"
+cat "docs/developer/refactoring/OPTIMIZATION_SUMMARY_v1.2.0.md"
 
 # 3. 了解测试解决方案
 cat "docs/developer/testing.md"
