@@ -166,7 +166,10 @@ class DOMManager {
             jsonFileInput: document.getElementById('jsonFileInput'),
             nativeHostInfo: document.getElementById('nativeHostInfo'),
             showInstallGuide: document.getElementById('showInstallGuide'),
-            currentStatus: document.getElementById('currentStatus')
+            currentStatus: document.getElementById('currentStatus'),
+            nativeHostToggle: document.getElementById('nativeHostToggle'),
+            clientTokenOption: document.getElementById('clientTokenOption'),
+            deepBrowserOption: document.getElementById('deepBrowserOption')
         };
 
         // 验证关键元素是否存在
@@ -650,6 +653,81 @@ window.testNativeMessaging = () => NativeHostManager.testConnection();
 window.getExtensionId = () => chrome.runtime.id;
 
 // =============================================================================
+// 原生主机状态管理模块
+// =============================================================================
+class NativeHostStateManager {
+    static isEnabled = true;
+
+    static initialize() {
+        const toggle = DOMManager.get('nativeHostToggle');
+
+        if (toggle) {
+            // 监听开关变化
+            toggle.addEventListener('change', this.handleToggleChange.bind(this));
+        }
+
+        // 初始化UI状态
+        this.updateUI();
+    }
+
+    static handleToggleChange(event) {
+        this.isEnabled = event.target.checked;
+        this.updateUI();
+
+        // 显示状态变化提示
+        if (this.isEnabled) {
+            UIManager.showMessage('原生主机功能已启用', 'success');
+        } else {
+            UIManager.showMessage('原生主机功能已禁用，相关功能将不可用', 'info');
+        }
+    }
+
+    static updateUI() {
+        const toggle = DOMManager.get('nativeHostToggle');
+        const autoReadBtn = DOMManager.get('autoReadBtn');
+        const clientTokenOption = DOMManager.get('clientTokenOption');
+        const deepBrowserOption = DOMManager.get('deepBrowserOption');
+
+        // 更新开关状态
+        if (toggle) {
+            toggle.checked = this.isEnabled;
+        }
+
+        // 更新依赖原生主机的UI元素
+        const elementsToToggle = [autoReadBtn, clientTokenOption, deepBrowserOption].filter(el => el);
+
+        elementsToToggle.forEach(element => {
+            if (!this.isEnabled) {
+                element.classList.add('native-host-disabled');
+                if (element === autoReadBtn) {
+                    element.disabled = true;
+                }
+            } else {
+                element.classList.remove('native-host-disabled');
+                if (element === autoReadBtn) {
+                    element.disabled = false;
+                }
+            }
+        });
+
+        // 禁用/启用radio按钮
+        const radioButtons = document.querySelectorAll('input[name="tokenMode"]');
+        radioButtons.forEach(radio => {
+            radio.disabled = !this.isEnabled;
+        });
+    }
+
+    static isNativeHostEnabled() {
+        return this.isEnabled;
+    }
+
+    static setEnabled(enabled) {
+        this.isEnabled = enabled;
+        this.updateUI();
+    }
+}
+
+// =============================================================================
 // 账户管理模块
 // =============================================================================
 class AccountManager {
@@ -785,67 +863,29 @@ class AccountManager {
             try {
                 console.log('🔄 开始刷新账户Token:', account.email);
 
-                // 使用当前账户的Token获取深度Token
-                const deepTokenResult = await MessageManager.sendMessage('getDeepToken', { 
-                    mode: 'deep_browser',
-                    headless: false,
-                    access_token: account.accessToken,
-                    userid: account.userid
-                });
+                // 直接使用浏览器模式刷新Token，不依赖原生主机
+                console.log('🌐 使用浏览器模式刷新深度Token...');
 
-                if (deepTokenResult.success || (deepTokenResult.data && !deepTokenResult.error)) {
-                    const responseData = deepTokenResult.data || deepTokenResult;
-                    
-                                        if (responseData.needBrowserAction) {
-                        // 需要浏览器操作
-                        UIManager.showMessage('🌐 正在打开浏览器页面，请确认登录...', 'info');
-                        
-                        // handleDeepTokenBrowserMode 会完成所有必要的保存和Cookie设置
-                        await DataImportManager.handleDeepTokenBrowserMode(responseData);
+                // 构造要刷新的账户数据
+                const accountDataForRefresh = {
+                    userid: account.userid,
+                    accessToken: account.accessToken,
+                    email: account.email,
+                    tokenType: 'client',
+                    needBrowserAction: true,
+                    deepLoginUrl: 'https://www.cursor.com/cn/loginDeepControl'
+                };
 
-                        console.log('✅ 深度Token浏览器模式完成，账户信息已自动更新');
-                        UIManager.showMessage(`✅ 账户 ${account.email} 的深度Token已刷新完成`, 'success');
+                UIManager.showMessage('🌐 正在打开浏览器页面，请确认登录...', 'info');
 
-                        // 刷新界面（handleDeepTokenBrowserMode已经完成了状态更新）
-                        LoadingManager.hide('accountList');
-                    } else {
-                        // 直接获取到了深度Token
-                        const updatedAccount = {
-                            ...account,
-                            accessToken: responseData.accessToken,
-                            WorkosCursorSessionToken: responseData.WorkosCursorSessionToken || `${responseData.userid}%3A%3A${responseData.accessToken}`,
-                            expiresTime: responseData.expiresTime,
-                            tokenType: 'deep',
-                            validDays: 60,
-                            updatedTime: new Date().toISOString()
-                        };
+                // 直接调用浏览器模式处理，传递要刷新的账户信息
+                await DataImportManager.handleDeepTokenBrowserMode(accountDataForRefresh);
 
-                        // 使用统一的保存方法，自动处理Storage和Cookie的同步
-                        console.log('🔄 使用统一保存方法更新账户Token...');
-                        const saveResult = await MessageManager.sendMessage('saveToLocalStorage', updatedAccount);
+                console.log('✅ 深度Token浏览器模式完成，账户信息已自动更新');
+                UIManager.showMessage(`✅ 账户 ${account.email} 的深度Token已刷新完成`, 'success');
 
-                        if (!saveResult.success) {
-                            throw new Error(`保存更新的账户失败: ${saveResult.error}`);
-                        }
-
-                        console.log('✅ 账户Token已通过统一方法更新:', saveResult.message);
-
-                        // 处理Cookie设置结果并显示消息
-                        if (saveResult.cookieError) {
-                            console.warn('⚠️ Cookie设置失败:', saveResult.cookieError);
-                            UIManager.showMessage(`✅ 账户 ${account.email} 的Token已刷新为深度Token，但Cookie设置失败`, 'warning');
-                        } else if (saveResult.cookieSet) {
-                            console.log('✅ Cookie已同步更新');
-                            UIManager.showMessage(`✅ 账户 ${account.email} 的Token已刷新为深度Token（60天有效期）`, 'success');
-                        }
-
-                        // 更新应用状态并刷新界面
-                        AppState.setState({ currentAccount: updatedAccount });
-                        await this.refreshAccountInterface();
-                    }
-                } else {
-                    throw new Error(deepTokenResult.error || '获取深度Token失败');
-                }
+                // 刷新界面（handleDeepTokenBrowserMode已经完成了状态更新）
+                LoadingManager.hide('accountList');
             } catch (error) {
                 console.error('❌ 刷新Token失败:', error);
                 UIManager.showMessage(`❌ 刷新Token失败: ${error.message}`, 'error');
@@ -1077,6 +1117,9 @@ class App {
             EventManager.setupMethodTabs();
             FileManager.setupFileUpload();
 
+            // 初始化原生主机状态管理
+            NativeHostStateManager.initialize();
+
             // 标记为已初始化
             AppState.setState({ isInitialized: true });
 
@@ -1298,6 +1341,11 @@ class DataImportManager {
         const nativeHostInfo = DOMManager.get('nativeHostInfo');
 
         return ErrorHandler.handleAsyncError(async () => {
+            // 检查原生主机是否启用（仅提示，不阻止执行）
+            if (!NativeHostStateManager.isNativeHostEnabled()) {
+                UIManager.showMessage('提示：原生主机功能已禁用，但仍会尝试执行', 'warning');
+            }
+
             LoadingManager.show('autoReadBtn', '🔍 正在读取...');
 
             // 获取用户选择的token模式

@@ -29,6 +29,94 @@
             font-size: 24px;
             font-weight: 600;
         }
+
+        /* 原生主机控制区域 */
+        .native-host-control {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .native-host-control:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .control-icon {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .control-title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 开关样式 */
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-label {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-label:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .toggle-label {
+            background-color: #4CAF50;
+        }
+
+        input:checked + .toggle-label:before {
+            transform: translateX(20px) translateY(-50%);
+        }
+
+        input:disabled + .toggle-label {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         
         .section {
             margin-bottom: 25px;
@@ -837,6 +925,45 @@
             line-height: 1.3;
             transition: all 0.3s ease;
         }
+
+        /* 禁用状态样式 */
+        .native-host-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(100%);
+            position: relative;
+        }
+
+        .native-host-disabled::after {
+            content: '🔒 需要原生主机';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .native-host-disabled:hover::after {
+            opacity: 1;
+        }
+
+        .btn-success:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
         
         /* Token状态样式 */
         .account-token-status {
@@ -941,7 +1068,23 @@
 <body>
     <div class="container">
                         <h1>🎯 Cursor Client2Login</h1>
-        
+
+        <!-- 原生主机开关控制 -->
+        <div class="native-host-control">
+            <div class="control-header">
+                <div class="control-left">
+                    <span class="control-icon">🔌</span>
+                    <span class="control-title">原生主机功能</span>
+                </div>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="nativeHostToggle" checked>
+                    <label for="nativeHostToggle" class="toggle-label">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
         <!-- 当前账户状态显示 -->
         <div id="currentStatus" class="current-status no-account">
             <span class="status-icon">👤</span>
@@ -982,7 +1125,7 @@
                 <div class="input-group">
                     <label>Token获取模式:</label>
                     <div class="token-mode-selection">
-                        <label class="radio-option">
+                        <label class="radio-option" id="clientTokenOption">
                             <input type="radio" name="tokenMode" value="client" checked>
                             <span>🔗 客户端Token (有效期未知)</span>
                             <div class="mode-desc">直接使用Cursor客户端Token，有效期未知</div>
@@ -1006,7 +1149,7 @@
                             <div class="mode-desc">自动获取深度Token，无需用户交互，有效期60天</div>
                         </label>
                         -->
-                        <label class="radio-option">
+                        <label class="radio-option" id="deepBrowserOption">
                             <input type="radio" name="tokenMode" value="deep_browser">
                             <span>🌐 新深度Token-浏览器模式 (60天有效期)</span>
                             <div class="mode-desc">打开浏览器页面确认登录，获取深度Token，有效期60天</div>

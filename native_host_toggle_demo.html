@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原生主机开关UI演示</title>
+    <style>
+        body {
+            width: 420px;
+            min-height: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        /* 原生主机控制区域 */
+        .native-host-control {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .native-host-control:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .control-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .control-icon {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .control-title {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 开关样式 */
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-label {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-label:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .toggle-label {
+            background-color: #4CAF50;
+        }
+
+        input:checked + .toggle-label:before {
+            transform: translateX(20px);
+        }
+
+        input:disabled + .toggle-label {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+
+
+        /* 当前账户状态 */
+        .current-status {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .status-title {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 4px;
+        }
+
+        .status-email {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .status-userid {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* 按钮样式 */
+        .btn-success {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        /* Token模式选择 */
+        .token-mode-selection {
+            margin-bottom: 15px;
+        }
+
+        .radio-option {
+            display: block;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .radio-option:hover:not(.native-host-disabled) {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        .mode-desc {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 4px;
+            margin-left: 20px;
+        }
+
+        /* 禁用状态样式 */
+        .native-host-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            filter: grayscale(100%);
+            position: relative;
+        }
+
+        .native-host-disabled::after {
+            content: '🔒 需要原生主机';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .native-host-disabled:hover::after {
+            opacity: 1;
+        }
+
+        .btn-success:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 标签样式 */
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 演示控制 */
+        .demo-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .demo-controls button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 8px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .demo-controls button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Cursor Client2Login</h1>
+
+        <!-- 原生主机开关控制 -->
+        <div class="native-host-control">
+            <div class="control-header">
+                <div class="control-left">
+                    <span class="control-icon">🔌</span>
+                    <span class="control-title">原生主机功能</span>
+                </div>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="nativeHostToggle" checked>
+                    <label for="nativeHostToggle" class="toggle-label">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 当前账户状态显示 -->
+        <div class="current-status">
+            <span class="status-icon">👤</span>
+            <div class="status-title">当前账户</div>
+            <div class="status-email">user@example.com</div>
+            <div class="status-userid">用户ID: 12345</div>
+        </div>
+
+        <!-- Token类型选择 -->
+        <div class="input-group">
+            <label>Token获取模式:</label>
+            <div class="token-mode-selection">
+                <label class="radio-option" id="clientTokenOption">
+                    <input type="radio" name="tokenMode" value="client" checked>
+                    <span>🔗 客户端Token (有效期未知)</span>
+                    <div class="mode-desc">直接使用Cursor客户端Token，有效期未知</div>
+                </label>
+                <label class="radio-option" id="deepBrowserOption">
+                    <input type="radio" name="tokenMode" value="deep_browser">
+                    <span>🌐 新深度Token-浏览器模式 (60天有效期)</span>
+                    <div class="mode-desc">打开浏览器页面确认登录，获取深度Token，有效期60天</div>
+                </label>
+            </div>
+        </div>
+
+        <button id="autoReadBtn" class="btn-success">🔍 自动读取Cursor数据</button>
+    </div>
+
+    <!-- 演示控制面板 -->
+    <div class="demo-controls">
+        <div style="margin-bottom: 10px; font-weight: bold;">演示控制</div>
+        <button onclick="toggleNativeHost()">切换原生主机开关</button>
+    </div>
+
+    <script>
+        let isEnabled = true;
+
+        function updateUI() {
+            const toggle = document.getElementById('nativeHostToggle');
+            const autoReadBtn = document.getElementById('autoReadBtn');
+            const clientTokenOption = document.getElementById('clientTokenOption');
+            const deepBrowserOption = document.getElementById('deepBrowserOption');
+
+            // 更新开关状态
+            toggle.checked = isEnabled;
+
+            // 更新依赖原生主机的UI元素
+            if (!isEnabled) {
+                // 禁用自动读取按钮
+                autoReadBtn.classList.add('native-host-disabled');
+                autoReadBtn.disabled = true;
+
+                // 禁用两个Token获取模式
+                clientTokenOption.classList.add('native-host-disabled');
+                deepBrowserOption.classList.add('native-host-disabled');
+
+                // 禁用radio按钮
+                const radioButtons = document.querySelectorAll('input[name="tokenMode"]');
+                radioButtons.forEach(radio => {
+                    radio.disabled = true;
+                });
+            } else {
+                // 启用自动读取按钮
+                autoReadBtn.classList.remove('native-host-disabled');
+                autoReadBtn.disabled = false;
+
+                // 启用两个Token获取模式
+                clientTokenOption.classList.remove('native-host-disabled');
+                deepBrowserOption.classList.remove('native-host-disabled');
+
+                // 启用radio按钮
+                const radioButtons = document.querySelectorAll('input[name="tokenMode"]');
+                radioButtons.forEach(radio => {
+                    radio.disabled = false;
+                });
+            }
+        }
+
+        function toggleNativeHost() {
+            isEnabled = !isEnabled;
+            updateUI();
+        }
+
+        // 监听开关变化
+        document.getElementById('nativeHostToggle').addEventListener('change', function(e) {
+            isEnabled = e.target.checked;
+            updateUI();
+        });
+
+        // 初始化UI
+        updateUI();
+    </script>
+</body>
+</html>
