@@ -76,4 +76,8 @@ node_modules/
 debug.log
 error.log
 
+# Git修复脚本（本地使用，不需要提交）
+fix_git_sync.sh
+GIT_SYNC_FIX_USAGE.md
+
 .history/
