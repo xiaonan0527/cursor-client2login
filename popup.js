@@ -514,6 +514,9 @@ class UIManager {
             return;
         }
 
+        // 清除任何现有的加载遮罩
+        this.hideAccountListLoading();
+
         if (accounts.length === 0) {
             accountList.innerHTML = '<div class="empty-state">暂无保存的账户<br><small>请先导入账户数据</small></div>';
             return;
@@ -537,7 +540,7 @@ class UIManager {
                 const now = new Date();
                 const timeDiff = expiresDate.getTime() - now.getTime();
                 const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-                
+
                 if (daysLeft > 0) {
                     if (tokenType === 'deep') {
                         // 深度Token显示完整过期日期
@@ -596,6 +599,89 @@ class UIManager {
         }).join('');
 
         accountList.innerHTML = accountsHtml;
+    }
+
+    // 专门为账户列表设计的加载状态管理
+    static showAccountListLoading(message = '处理中...') {
+        const accountList = DOMManager.get('accountList');
+        if (!accountList) return;
+
+        // 移除现有的加载遮罩
+        this.hideAccountListLoading();
+
+        // 创建加载遮罩
+        const loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'accountListLoadingOverlay';
+        loadingOverlay.className = 'account-list-loading-overlay';
+        loadingOverlay.innerHTML = `
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">${message}</div>
+            </div>
+        `;
+
+        // 设置遮罩样式
+        accountList.style.position = 'relative';
+        accountList.appendChild(loadingOverlay);
+
+        // 添加样式（如果还没有添加）
+        if (!document.getElementById('account-list-loading-styles')) {
+            this.addAccountListLoadingStyles();
+        }
+    }
+
+    static hideAccountListLoading() {
+        const overlay = document.getElementById('accountListLoadingOverlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    }
+
+    static addAccountListLoadingStyles() {
+        const style = document.createElement('style');
+        style.id = 'account-list-loading-styles';
+        style.textContent = `
+            .account-list-loading-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.7);
+                backdrop-filter: blur(2px);
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+
+            .loading-content {
+                text-align: center;
+                color: white;
+            }
+
+            .loading-spinner {
+                width: 32px;
+                height: 32px;
+                border: 3px solid rgba(255, 255, 255, 0.3);
+                border-top: 3px solid #4CAF50;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 12px;
+            }
+
+            .loading-text {
+                font-size: 14px;
+                font-weight: 500;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
     }
 }
 
@@ -756,7 +842,7 @@ class AccountManager {
 
             const accountList = DOMManager.get('accountList');
             if (accountList) {
-                accountList.innerHTML = '<div class="loading">加载失败</div>';
+                accountList.innerHTML = '<div class="empty-state">加载失败<br><small>请刷新页面重试</small></div>';
             }
         }
     }
@@ -768,7 +854,8 @@ class AccountManager {
             if (index >= 0 && index < accountList.length) {
                 const account = accountList[index];
 
-                LoadingManager.show('accountList', '切换中...');
+                // 使用专门的账户列表加载状态
+                UIManager.showAccountListLoading('切换中...');
 
                 const cookieResult = await MessageManager.sendMessage('setCookie', {
                     userid: account.userid,
@@ -791,7 +878,8 @@ class AccountManager {
                 }
             }
         }, '切换账户').finally(() => {
-            LoadingManager.hide('accountList');
+            // 确保加载状态被清除
+            UIManager.hideAccountListLoading();
         });
     }
 
@@ -853,12 +941,13 @@ class AccountManager {
             }
 
             const account = accountList[index];
-            
+
             if (!confirm(`确定要刷新账户 ${account.email} 的Token吗？\n\n这将使用浏览器模式获取新的深度Token（60天有效期）。`)) {
                 return;
             }
 
-            LoadingManager.show('accountList', '🔄 正在刷新Token...');
+            // 使用专门的账户列表加载状态
+            UIManager.showAccountListLoading('🔄 正在刷新Token...');
 
             try {
                 console.log('🔄 开始刷新账户Token:', account.email);
@@ -884,12 +973,12 @@ class AccountManager {
                 console.log('✅ 深度Token浏览器模式完成，账户信息已自动更新');
                 UIManager.showMessage(`✅ 账户 ${account.email} 的深度Token已刷新完成`, 'success');
 
-                // 刷新界面（handleDeepTokenBrowserMode已经完成了状态更新）
-                LoadingManager.hide('accountList');
             } catch (error) {
                 console.error('❌ 刷新Token失败:', error);
                 UIManager.showMessage(`❌ 刷新Token失败: ${error.message}`, 'error');
-                LoadingManager.hide('accountList');
+            } finally {
+                // 确保加载状态被清除
+                UIManager.hideAccountListLoading();
             }
         }, '刷新账户Token');
     }
