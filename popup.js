@@ -744,7 +744,10 @@ window.getExtensionId = () => chrome.runtime.id;
 class NativeHostStateManager {
     static isEnabled = true;
 
-    static initialize() {
+    static async initialize() {
+        // 从存储中恢复开关状态
+        await this.loadStateFromStorage();
+
         const toggle = DOMManager.get('nativeHostToggle');
 
         if (toggle) {
@@ -756,8 +759,38 @@ class NativeHostStateManager {
         this.updateUI();
     }
 
-    static handleToggleChange(event) {
+    static async loadStateFromStorage() {
+        try {
+            if (chrome?.storage?.local) {
+                const result = await chrome.storage.local.get(['nativeHostEnabled']);
+                // 如果存储中有值，使用存储的值；否则保持默认值 true
+                if (result.nativeHostEnabled !== undefined) {
+                    this.isEnabled = result.nativeHostEnabled;
+                    console.log('📋 从存储恢复原生主机开关状态:', this.isEnabled);
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ 加载原生主机开关状态失败，使用默认值:', error);
+        }
+    }
+
+    static async saveStateToStorage() {
+        try {
+            if (chrome?.storage?.local) {
+                await chrome.storage.local.set({ nativeHostEnabled: this.isEnabled });
+                console.log('💾 原生主机开关状态已保存:', this.isEnabled);
+            }
+        } catch (error) {
+            console.warn('⚠️ 保存原生主机开关状态失败:', error);
+        }
+    }
+
+    static async handleToggleChange(event) {
         this.isEnabled = event.target.checked;
+
+        // 保存状态到存储
+        await this.saveStateToStorage();
+
         this.updateUI();
 
         // 显示状态变化提示
@@ -1206,18 +1239,20 @@ class App {
             EventManager.setupMethodTabs();
             FileManager.setupFileUpload();
 
-            // 初始化原生主机状态管理
-            NativeHostStateManager.initialize();
+            // 初始化原生主机状态管理（异步）
+            await NativeHostStateManager.initialize();
 
             // 标记为已初始化
             AppState.setState({ isInitialized: true });
 
-            // 自动测试原生消息传递（仅在Chrome扩展环境中）
-            if (chrome?.runtime?.sendNativeMessage) {
+            // 自动测试原生消息传递（仅在Chrome扩展环境中且原生主机功能启用时）
+            if (chrome?.runtime?.sendNativeMessage && NativeHostStateManager.isNativeHostEnabled()) {
                 console.log('开始自动测试原生消息传递...');
                 setTimeout(() => NativeHostManager.testConnection(), 1000);
-            } else {
+            } else if (!chrome?.runtime?.sendNativeMessage) {
                 console.log('⚠️ 非Chrome扩展环境，跳过原生消息测试');
+            } else {
+                console.log('⚠️ 原生主机功能已禁用，跳过原生消息测试');
             }
 
         } catch (error) {
