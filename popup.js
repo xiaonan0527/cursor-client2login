@@ -509,7 +509,6 @@ class UIManager {
             currentStatus.className = 'current-status';
             
             // 获取token信息
-            const tokenType = storageAccount.tokenType || 'client';
             const validDays = storageAccount.validDays;
             let statusNote = '状态正常';
             
@@ -519,28 +518,28 @@ class UIManager {
                 const now = new Date();
                 const timeDiff = expiresDate.getTime() - now.getTime();
                 const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-                
+
                 if (daysLeft > 0) {
-                    if (tokenType === 'deep') {
-                        const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit'
-                        });
-                        statusNote = `🌟 深度Token (${expiresDateStr}到期，剩余${daysLeft}天)`;
-                    } else {
-                        statusNote = `客户端Token - 剩余${daysLeft}天`;
-                    }
+                    const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    statusNote = `📅 ${expiresDateStr}到期，剩余${daysLeft}天`;
                 } else {
-                    statusNote = 'Token已过期';
+                    const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit'
+                    });
+                    statusNote = `📅 已于${expiresDateStr}过期`;
                     currentStatus.className = 'current-status warning';
                 }
             } else {
-                const typeText = tokenType === 'deep' ? '深度Token' : '客户端Token';
                 if (validDays) {
-                    statusNote = `${typeText} (${validDays}天有效期)`;
+                    statusNote = `有效期${validDays}天`;
                 } else {
-                    statusNote = `${typeText} (有效期未知)`;
+                    statusNote = '有效期未知';
                 }
             }
             
@@ -667,8 +666,6 @@ class UIManager {
         const accountsHtml = accounts.map((account, index) => {
             const email = account.email || '未知邮箱';
             const userid = account.userid || '未知用户ID';
-            const tokenType = account.tokenType || 'client';
-            const validDays = account.validDays;
 
             const isCurrentAccount = currentAccount &&
                                    currentAccount.email === account.email &&
