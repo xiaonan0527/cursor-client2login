@@ -558,7 +558,7 @@ class UIManager {
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        this.handleLogout();
+                        AccountManager.handleLogout();
                     });
                 }
             }, 100);
@@ -1250,10 +1250,10 @@ class AccountManager {
 
     static async handleLogout() {
         return ErrorHandler.handleAsyncError(async () => {
-            console.log('🚪 开始退出登录（仅清除Cookie）...');
+            console.log('🚪 开始退出登录（清除Cookie和当前账户数据）...');
 
             // 确认操作
-            if (!confirm('确定要退出登录吗？\n\n这将清除Cookie中的认证信息，但保留本地存储的账户数据。\n您可以随时重新切换到该账户。')) {
+            if (!confirm('确定要退出登录吗？\n\n这将清除Cookie中的认证信息和当前账户数据。\n您可以随时重新切换到其他已保存的账户。')) {
                 return;
             }
 
@@ -1266,14 +1266,29 @@ class AccountManager {
 
                 if (clearResult.success) {
                     console.log('✅ Cookie已清除');
-                    UIManager.showMessage('已退出登录，Cookie已清除', 'success');
                 } else {
                     console.warn('⚠️ Cookie清除可能不完整:', clearResult.error);
+                }
+
+                // 清除插件storage中的当前账户数据
+                await chrome.storage.local.remove(['currentAccount']);
+                console.log('✅ 当前账户数据已从storage中清除');
+
+                // 更新应用状态
+                AppState.setState({ currentAccount: null });
+
+                // 清除loading消息
+                UIManager.clearMessage();
+
+                // 显示成功消息
+                if (clearResult.success) {
+                    UIManager.showMessage('已退出登录，Cookie和当前账户数据已清除', 'success');
+                } else {
                     UIManager.showMessage('退出登录完成，但Cookie清除可能不完整', 'warning');
                 }
 
-                // 刷新当前状态显示（不清除Storage中的currentAccount，让用户看到状态变化）
-                await this.updateCurrentStatus();
+                // 刷新整个账户界面（包括当前状态和账户列表）
+                await this.refreshAccountInterface();
 
             } catch (error) {
                 console.error('❌ 退出登录失败:', error);
