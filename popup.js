@@ -8,6 +8,153 @@ console.log('扩展ID:', chrome.runtime.id);
 console.log('Chrome版本:', navigator.userAgent);
 
 // =============================================================================
+// JWT解码工具函数 (与background.js保持一致)
+// =============================================================================
+const JWTDecoder = {
+  /**
+   * 解码JWT token的payload部分
+   * @param {string} token - JWT token
+   * @returns {object|null} 解码后的payload对象，失败返回null
+   */
+  decodePayload(token) {
+    try {
+      if (!token || typeof token !== 'string') {
+        console.error('❌ JWT解码失败: token无效');
+        return null;
+      }
+
+      // JWT由三部分组成: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('❌ JWT解码失败: token格式错误，应该有3个部分');
+        return null;
+      }
+
+      // 解码payload部分（第二部分）
+      const payload = this.decodeBase64Part(parts[1]);
+      console.log('✅ JWT payload解码成功:', payload);
+      return payload;
+    } catch (error) {
+      console.error('❌ JWT解码过程出错:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 解码JWT的base64部分
+   * @param {string} part - base64编码的部分
+   * @returns {object} 解码后的对象
+   */
+  decodeBase64Part(part) {
+    // 添加必要的padding
+    let paddedPart = part;
+    const missingPadding = paddedPart.length % 4;
+    if (missingPadding) {
+      paddedPart += '='.repeat(4 - missingPadding);
+    }
+
+    // Base64解码
+    const decodedBytes = atob(paddedPart.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decodedBytes);
+  },
+
+  /**
+   * 从JWT token中提取用户ID
+   * @param {string} token - JWT token
+   * @returns {string|null} 用户ID，失败返回null
+   */
+  extractUserId(token) {
+    const payload = this.decodePayload(token);
+    if (!payload || !payload.sub) {
+      console.error('❌ 无法从JWT中提取用户ID: sub字段不存在');
+      return null;
+    }
+
+    const sub = payload.sub;
+    console.log('🔍 JWT sub字段:', sub);
+
+    // 如果sub包含|分隔符，提取后半部分作为用户ID
+    if (sub.includes('|')) {
+      const userId = sub.split('|')[1];
+      console.log('✅ 从JWT提取的用户ID:', userId);
+      return userId;
+    } else {
+      // 直接使用sub作为用户ID
+      console.log('✅ 直接使用sub作为用户ID:', sub);
+      return sub;
+    }
+  },
+
+  /**
+   * 从JWT token中提取过期时间
+   * @param {string} token - JWT token
+   * @returns {object|null} 包含过期时间信息的对象，失败返回null
+   */
+  extractExpirationInfo(token) {
+    const payload = this.decodePayload(token);
+    if (!payload || !payload.exp) {
+      console.error('❌ 无法从JWT中提取过期时间: exp字段不存在');
+      return null;
+    }
+
+    const expTimestamp = payload.exp;
+    const expDate = new Date(expTimestamp * 1000); // exp是秒级时间戳，需要转换为毫秒
+    const currentDate = new Date();
+    const isExpired = expDate <= currentDate;
+
+    // 计算剩余天数
+    const remainingMs = expDate.getTime() - currentDate.getTime();
+    const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+
+    const expirationInfo = {
+      expTimestamp: expTimestamp,
+      expDate: expDate.toISOString(),
+      isExpired: isExpired,
+      remainingDays: remainingDays
+    };
+
+    console.log('✅ JWT过期时间信息:', expirationInfo);
+    return expirationInfo;
+  },
+
+  /**
+   * 完整解析JWT token，提取所有关键信息
+   * @param {string} token - JWT token
+   * @returns {object|null} 包含用户ID和过期信息的对象，失败返回null
+   */
+  parseToken(token) {
+    try {
+      const payload = this.decodePayload(token);
+      if (!payload) {
+        return null;
+      }
+
+      const userId = this.extractUserId(token);
+      const expirationInfo = this.extractExpirationInfo(token);
+
+      if (!userId || !expirationInfo) {
+        console.error('❌ JWT解析失败: 无法提取必要信息');
+        return null;
+      }
+
+      const result = {
+        userId: userId,
+        sub: payload.sub,
+        exp: payload.exp,
+        expirationInfo: expirationInfo,
+        fullPayload: payload
+      };
+
+      console.log('✅ JWT完整解析结果:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ JWT完整解析失败:', error);
+      return null;
+    }
+  }
+};
+
+// =============================================================================
 // 错误处理模块
 // =============================================================================
 class ErrorHandler {
@@ -1716,10 +1863,36 @@ class DataImportManager {
                 const deepAccessToken = result.data.accessToken;
                 const authId = result.data.authId || '';
                 
-                // 提取深度用户ID
+                // 使用JWT解码获取用户ID和过期时间
+                console.log('🔍 开始使用JWT解码分析深度Token...');
+                const jwtInfo = JWTDecoder.parseToken(deepAccessToken);
+
                 let deepUserId = clientData.userid;
-                if (authId.includes('|')) {
-                    deepUserId = authId.split('|')[1];
+                let expiresTime = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(); // 默认60天后
+                let validDays = 60;
+
+                if (jwtInfo) {
+                    // 使用JWT解码的用户ID
+                    if (jwtInfo.userId) {
+                        deepUserId = jwtInfo.userId;
+                        console.log('✅ 使用JWT解码的用户ID:', deepUserId);
+                    }
+
+                    // 使用JWT解码的过期时间
+                    if (jwtInfo.expirationInfo) {
+                        expiresTime = jwtInfo.expirationInfo.expDate;
+                        validDays = jwtInfo.expirationInfo.remainingDays;
+                        console.log('✅ 使用JWT解码的过期时间:', {
+                            expDate: expiresTime,
+                            remainingDays: validDays
+                        });
+                    }
+                } else {
+                    console.warn('⚠️ JWT解码失败，使用传统方法提取用户ID');
+                    // 回退到传统方法
+                    if (authId.includes('|')) {
+                        deepUserId = authId.split('|')[1];
+                    }
                 }
 
                 // 创建深度token账户数据
@@ -1729,9 +1902,10 @@ class DataImportManager {
                     accessToken: deepAccessToken,
                     WorkosCursorSessionToken: `${deepUserId}%3A%3A${deepAccessToken}`,
                     createTime: new Date().toISOString(),
-                    expiresTime: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // 60天后
+                    expiresTime: expiresTime,
                     tokenType: 'deep',
-                    validDays: 60
+                    validDays: validDays,
+                    jwtInfo: jwtInfo // 保存JWT解码信息用于调试
                 };
                 
                 console.log('🎯 构造的深度Token数据:', {
@@ -1881,6 +2055,50 @@ class DataImportManager {
     }
 
     static async processAccountData(accountData) {
+        // 在保存之前，使用JWT解码来获取正确的用户ID和过期时间
+        console.log('🔍 开始使用JWT解码分析账户Token...');
+
+        if (accountData.accessToken) {
+            const jwtInfo = JWTDecoder.parseToken(accountData.accessToken);
+
+            if (jwtInfo) {
+                // 使用JWT解码的用户ID（如果可用）
+                if (jwtInfo.userId && jwtInfo.userId !== accountData.userid) {
+                    console.log('✅ 更新用户ID:', {
+                        原始: accountData.userid,
+                        JWT解码: jwtInfo.userId
+                    });
+                    accountData.userid = jwtInfo.userId;
+                    // 同时更新WorkosCursorSessionToken
+                    accountData.WorkosCursorSessionToken = `${jwtInfo.userId}%3A%3A${accountData.accessToken}`;
+                }
+
+                // 使用JWT解码的过期时间（如果可用）
+                if (jwtInfo.expirationInfo) {
+                    console.log('✅ 更新过期时间信息:', {
+                        原始过期时间: accountData.expiresTime,
+                        JWT过期时间: jwtInfo.expirationInfo.expDate,
+                        剩余天数: jwtInfo.expirationInfo.remainingDays
+                    });
+                    accountData.expiresTime = jwtInfo.expirationInfo.expDate;
+                    accountData.validDays = jwtInfo.expirationInfo.remainingDays;
+                }
+
+                // 保存JWT解码信息用于调试
+                accountData.jwtInfo = jwtInfo;
+
+                console.log('✅ JWT解码完成，更新后的账户数据:', {
+                    email: accountData.email,
+                    userid: accountData.userid,
+                    tokenType: accountData.tokenType,
+                    expiresTime: accountData.expiresTime,
+                    validDays: accountData.validDays
+                });
+            } else {
+                console.warn('⚠️ JWT解码失败，使用原始账户数据');
+            }
+        }
+
         // 使用统一的保存方法（自动处理Storage和Cookie）
         console.log('💾 使用统一保存方法处理账户数据...');
         const saveResult = await MessageManager.sendMessage('saveToLocalStorage', accountData);

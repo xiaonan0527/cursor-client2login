@@ -1,6 +1,151 @@
 // 原生消息主机配置
 const NATIVE_HOST_NAME = 'com.cursor.client.manage';
 
+// JWT解码工具函数
+const JWTDecoder = {
+  /**
+   * 解码JWT token的payload部分
+   * @param {string} token - JWT token
+   * @returns {object|null} 解码后的payload对象，失败返回null
+   */
+  decodePayload(token) {
+    try {
+      if (!token || typeof token !== 'string') {
+        console.error('❌ JWT解码失败: token无效');
+        return null;
+      }
+
+      // JWT由三部分组成: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        console.error('❌ JWT解码失败: token格式错误，应该有3个部分');
+        return null;
+      }
+
+      // 解码payload部分（第二部分）
+      const payload = this.decodeBase64Part(parts[1]);
+      console.log('✅ JWT payload解码成功:', payload);
+      return payload;
+    } catch (error) {
+      console.error('❌ JWT解码过程出错:', error);
+      return null;
+    }
+  },
+
+  /**
+   * 解码JWT的base64部分
+   * @param {string} part - base64编码的部分
+   * @returns {object} 解码后的对象
+   */
+  decodeBase64Part(part) {
+    // 添加必要的padding
+    let paddedPart = part;
+    const missingPadding = paddedPart.length % 4;
+    if (missingPadding) {
+      paddedPart += '='.repeat(4 - missingPadding);
+    }
+
+    // Base64解码
+    const decodedBytes = atob(paddedPart.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decodedBytes);
+  },
+
+  /**
+   * 从JWT token中提取用户ID
+   * @param {string} token - JWT token
+   * @returns {string|null} 用户ID，失败返回null
+   */
+  extractUserId(token) {
+    const payload = this.decodePayload(token);
+    if (!payload || !payload.sub) {
+      console.error('❌ 无法从JWT中提取用户ID: sub字段不存在');
+      return null;
+    }
+
+    const sub = payload.sub;
+    console.log('🔍 JWT sub字段:', sub);
+
+    // 如果sub包含|分隔符，提取后半部分作为用户ID
+    if (sub.includes('|')) {
+      const userId = sub.split('|')[1];
+      console.log('✅ 从JWT提取的用户ID:', userId);
+      return userId;
+    } else {
+      // 直接使用sub作为用户ID
+      console.log('✅ 直接使用sub作为用户ID:', sub);
+      return sub;
+    }
+  },
+
+  /**
+   * 从JWT token中提取过期时间
+   * @param {string} token - JWT token
+   * @returns {object|null} 包含过期时间信息的对象，失败返回null
+   */
+  extractExpirationInfo(token) {
+    const payload = this.decodePayload(token);
+    if (!payload || !payload.exp) {
+      console.error('❌ 无法从JWT中提取过期时间: exp字段不存在');
+      return null;
+    }
+
+    const expTimestamp = payload.exp;
+    const expDate = new Date(expTimestamp * 1000); // exp是秒级时间戳，需要转换为毫秒
+    const currentDate = new Date();
+    const isExpired = expDate <= currentDate;
+
+    // 计算剩余天数
+    const remainingMs = expDate.getTime() - currentDate.getTime();
+    const remainingDays = Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
+
+    const expirationInfo = {
+      expTimestamp: expTimestamp,
+      expDate: expDate.toISOString(),
+      isExpired: isExpired,
+      remainingDays: remainingDays
+    };
+
+    console.log('✅ JWT过期时间信息:', expirationInfo);
+    return expirationInfo;
+  },
+
+  /**
+   * 完整解析JWT token，提取所有关键信息
+   * @param {string} token - JWT token
+   * @returns {object|null} 包含用户ID和过期信息的对象，失败返回null
+   */
+  parseToken(token) {
+    try {
+      const payload = this.decodePayload(token);
+      if (!payload) {
+        return null;
+      }
+
+      const userId = this.extractUserId(token);
+      const expirationInfo = this.extractExpirationInfo(token);
+
+      if (!userId || !expirationInfo) {
+        console.error('❌ JWT解析失败: 无法提取必要信息');
+        return null;
+      }
+
+      const result = {
+        userId: userId,
+        sub: payload.sub,
+        exp: payload.exp,
+        expirationInfo: expirationInfo,
+        fullPayload: payload
+      };
+
+      console.log('✅ JWT完整解析结果:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ JWT完整解析失败:', error);
+      return null;
+    }
+  }
+};
+
 // 安装时的初始化
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Cursor Client2Login 插件已安装');
@@ -689,32 +834,71 @@ async function getCurrentCookieStatus() {
       if (parts.length === 2 && parts[0] && parts[1]) {
         const userid = parts[0];
         const accessToken = parts[1];
-        
-        // 检查Cookie是否过期
-        const isExpired = cookie.expirationDate && cookie.expirationDate * 1000 < Date.now();
-        
+
+        // 使用JWT解码获取用户ID和过期时间
+        console.log('🔍 开始使用JWT解码分析Token...');
+        const jwtInfo = JWTDecoder.parseToken(accessToken);
+
+        let finalUserId = userid;
+        let tokenExpirationInfo = null;
+        let isTokenExpired = false;
+
+        if (jwtInfo) {
+          // 使用JWT解码的用户ID（如果可用）
+          if (jwtInfo.userId) {
+            finalUserId = jwtInfo.userId;
+            console.log('✅ 使用JWT解码的用户ID:', finalUserId);
+          }
+
+          // 使用JWT解码的过期时间
+          if (jwtInfo.expirationInfo) {
+            tokenExpirationInfo = jwtInfo.expirationInfo;
+            isTokenExpired = jwtInfo.expirationInfo.isExpired;
+            console.log('✅ 使用JWT解码的过期时间:', {
+              expDate: jwtInfo.expirationInfo.expDate,
+              isExpired: isTokenExpired,
+              remainingDays: jwtInfo.expirationInfo.remainingDays
+            });
+          }
+        } else {
+          console.warn('⚠️ JWT解码失败，使用Cookie原始信息');
+          // 如果JWT解码失败，回退到Cookie的过期时间
+          isTokenExpired = cookie.expirationDate && cookie.expirationDate * 1000 < Date.now();
+        }
+
         console.log('✅ Cookie解析成功:', {
-          userid: userid,
+          originalUserId: userid,
+          finalUserId: finalUserId,
           accessTokenLength: accessToken.length,
-          isExpired: isExpired,
-          expirationDate: cookie.expirationDate ? new Date(cookie.expirationDate * 1000).toISOString() : 'undefined'
+          isTokenExpired: isTokenExpired,
+          hasJWTInfo: !!jwtInfo,
+          cookieExpirationDate: cookie.expirationDate ? new Date(cookie.expirationDate * 1000).toISOString() : 'undefined',
+          jwtExpirationDate: tokenExpirationInfo ? tokenExpirationInfo.expDate : 'undefined'
         });
-        
+
         return {
           success: true,
           hasCookie: true,
           cookieData: {
-            userid: userid,
+            userid: finalUserId,
+            originalUserId: userid, // 保留原始用户ID用于调试
             accessToken: accessToken,
             expirationDate: cookie.expirationDate,
-            isExpired: isExpired,
+            isExpired: isTokenExpired,
             domain: cookie.domain,
-            path: cookie.path
+            path: cookie.path,
+            jwtInfo: jwtInfo, // 包含完整的JWT解码信息
+            tokenExpirationInfo: tokenExpirationInfo // JWT解码的过期信息
           },
-          message: isExpired ? 'Cookie已过期' : 'Cookie有效',
+          message: isTokenExpired ? 'Token已过期' : 'Token有效',
           debugInfo: {
             原始Cookie值: cookie.value,
-            解析结果: { userid, accessTokenLength: accessToken.length }
+            解析结果: {
+              originalUserId: userid,
+              finalUserId: finalUserId,
+              accessTokenLength: accessToken.length,
+              jwtDecoded: !!jwtInfo
+            }
           }
         };
       }
