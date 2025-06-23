@@ -29,7 +29,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   const handler = messageHandlers[request.action];
 
   if (handler) {
-    const result = handler(request.data);
+    // 根据不同的action类型，选择正确的数据字段
+    let handlerData;
+    if (request.action === 'switchAccount') {
+      // switchAccount使用accountData字段
+      handlerData = request.accountData;
+      console.log('🔄 处理switchAccount消息:', {
+        hasAccountData: !!handlerData,
+        accountEmail: handlerData?.email,
+        accountUserid: handlerData?.userid
+      });
+    } else {
+      // 其他action使用data字段
+      handlerData = request.data;
+    }
+
+    const result = handler(handlerData);
 
     // 如果返回Promise，等待结果
     if (result && typeof result.then === 'function') {
@@ -506,13 +521,36 @@ async function openCursorDashboard() {
 // 切换账户
 async function switchAccount(accountData) {
   try {
+    console.log('🔄 开始切换账户...', {
+      accountData: accountData ? {
+        email: accountData.email,
+        userid: accountData.userid,
+        hasAccessToken: !!accountData.accessToken,
+        hasWorkosToken: !!accountData.WorkosCursorSessionToken
+      } : 'undefined'
+    });
+
+    // 检查accountData是否存在
+    if (!accountData) {
+      throw new Error('账户数据为空，无法切换账户');
+    }
+
     // 提取accessToken，支持两种格式
     let accessToken;
     if (accountData.accessToken) {
       accessToken = accountData.accessToken;
+      console.log('✅ 使用直接的accessToken');
     } else if (accountData.WorkosCursorSessionToken && accountData.WorkosCursorSessionToken.includes('%3A%3A')) {
       accessToken = accountData.WorkosCursorSessionToken.split('%3A%3A')[1];
+      console.log('✅ 从WorkosCursorSessionToken中提取accessToken');
     } else {
+      console.error('❌ 无法找到有效的accessToken:', {
+        hasAccessToken: !!accountData.accessToken,
+        hasWorkosToken: !!accountData.WorkosCursorSessionToken,
+        workosTokenFormat: accountData.WorkosCursorSessionToken ?
+          (accountData.WorkosCursorSessionToken.includes('%3A%3A') ? '包含分隔符' : '不包含分隔符') :
+          '不存在'
+      });
       throw new Error('无法找到有效的accessToken');
     }
     
