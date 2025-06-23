@@ -299,18 +299,13 @@ class DOMManager {
         this.elements = {
             messageArea: document.getElementById('messageArea'),
             emailInput: document.getElementById('emailInput'),
-            useridInput: document.getElementById('useridInput'),
             accessTokenInput: document.getElementById('accessTokenInput'),
-            accessTokenFile: document.getElementById('accessTokenFile'),
             importDataBtn: document.getElementById('importDataBtn'),
             autoReadBtn: document.getElementById('autoReadBtn'),
-            processFilesBtn: document.getElementById('processFilesBtn'),
             accountList: document.getElementById('accountList'),
 
             openDashboardBtn: document.getElementById('openDashboardBtn'),
             clearDataBtn: document.getElementById('clearDataBtn'),
-            jsonDropZone: document.getElementById('jsonDropZone'),
-            jsonFileInput: document.getElementById('jsonFileInput'),
             nativeHostInfo: document.getElementById('nativeHostInfo'),
             showInstallGuide: document.getElementById('showInstallGuide'),
             currentStatus: document.getElementById('currentStatus'),
@@ -688,32 +683,60 @@ class UIManager {
                 const timeDiff = expiresDate.getTime() - now.getTime();
                 const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
 
+                const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+
                 if (daysLeft > 0) {
-                    if (tokenType === 'deep') {
-                        // 深度Token显示完整过期日期
+                    if (daysLeft <= 7) {
+                        // 7天内过期，显示警告
+                        tokenStatusText = `📅 ${expiresDateStr}到期 (剩余${daysLeft}天)`;
+                        tokenStatusClass = 'token-expired'; // 警告状态
+                    } else {
+                        // 正常状态
+                        tokenStatusText = `📅 ${expiresDateStr}到期 (剩余${daysLeft}天)`;
+                        tokenStatusClass = 'token-deep'; // 正常状态
+                    }
+                } else {
+                    // 已过期
+                    tokenStatusText = `📅 已于${expiresDateStr}过期`;
+                    tokenStatusClass = 'token-expired';
+                }
+            } else {
+                // 没有过期时间信息，尝试从JWT解码获取
+                if (account.accessToken) {
+                    const jwtInfo = JWTDecoder.parseToken(account.accessToken);
+                    if (jwtInfo && jwtInfo.expirationInfo) {
+                        const expiresDate = new Date(jwtInfo.expirationInfo.expDate);
                         const expiresDateStr = expiresDate.toLocaleDateString('zh-CN', {
                             year: 'numeric',
                             month: '2-digit',
                             day: '2-digit'
                         });
-                        tokenStatusText = `🌟 深度Token (${expiresDateStr}到期)`;
-                        tokenStatusClass = 'token-deep-highlight';
+                        const daysLeft = jwtInfo.expirationInfo.remainingDays;
+
+                        if (jwtInfo.expirationInfo.isExpired) {
+                            tokenStatusText = `📅 已于${expiresDateStr}过期`;
+                            tokenStatusClass = 'token-expired';
+                        } else if (daysLeft <= 7) {
+                            tokenStatusText = `📅 ${expiresDateStr}到期 (剩余${daysLeft}天)`;
+                            tokenStatusClass = 'token-expired';
+                        } else {
+                            tokenStatusText = `📅 ${expiresDateStr}到期 (剩余${daysLeft}天)`;
+                            tokenStatusClass = 'token-deep';
+                        }
                     } else {
-                        tokenStatusText = `客户端Token (${daysLeft}天)`;
+                        // JWT解码失败，显示未知状态
+                        tokenStatusText = '📅 过期时间未知';
                         tokenStatusClass = 'token-client';
                     }
                 } else {
-                    tokenStatusText = '已过期';
-                    tokenStatusClass = 'token-expired';
+                    // 没有Token信息
+                    tokenStatusText = '📅 过期时间未知';
+                    tokenStatusClass = 'token-client';
                 }
-            } else {
-                const typeText = tokenType === 'deep' ? '🌟 深度' : '客户端';
-                if (validDays) {
-                    tokenStatusText = `${typeText}Token (${validDays}天)`;
-                } else {
-                    tokenStatusText = `${typeText}Token`;
-                }
-                tokenStatusClass = tokenType === 'deep' ? 'token-deep-highlight' : 'token-client';
             }
 
             let actionButtons = '';
@@ -1384,7 +1407,6 @@ class App {
             // 设置事件监听器
             EventManager.setupEventListeners();
             EventManager.setupMethodTabs();
-            FileManager.setupFileUpload();
 
             // 初始化原生主机状态管理（异步）
             await NativeHostStateManager.initialize();
@@ -1427,7 +1449,6 @@ class EventManager {
         // 基本按钮事件
         if (elements.importDataBtn) elements.importDataBtn.addEventListener('click', () => DataImportManager.handleManualImport());
         if (elements.autoReadBtn) elements.autoReadBtn.addEventListener('click', () => DataImportManager.handleAutoRead());
-        if (elements.processFilesBtn) elements.processFilesBtn.addEventListener('click', () => DataImportManager.handleProcessFiles());
 
         if (elements.openDashboardBtn) elements.openDashboardBtn.addEventListener('click', () => DashboardManager.openDashboard());
         if (elements.clearDataBtn) elements.clearDataBtn.addEventListener('click', () => this.handleClearData());
@@ -1520,89 +1541,9 @@ class EventManager {
 }
 
 // =============================================================================
-// 文件管理模块
+// 文件管理模块 - 已移除文件上传功能
 // =============================================================================
-class FileManager {
-    static setupFileUpload() {
-        const elements = DOMManager.getAll();
-        const { jsonDropZone, jsonFileInput } = elements;
-
-        if (!jsonDropZone || !jsonFileInput) {
-            console.warn('⚠️ 文件上传元素未找到，可能在测试环境中');
-            return;
-        }
-
-        // 点击上传
-        jsonDropZone.addEventListener('click', () => {
-            jsonFileInput.click();
-        });
-
-        // 文件选择
-        jsonFileInput.addEventListener('change', this.handleFileSelect);
-
-        // 拖拽上传
-        jsonDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            jsonDropZone.classList.add('dragover');
-        });
-
-        jsonDropZone.addEventListener('dragleave', () => {
-            jsonDropZone.classList.remove('dragover');
-        });
-
-        jsonDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            jsonDropZone.classList.remove('dragover');
-
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                this.handleFileSelect({ target: { files } });
-            }
-        });
-    }
-
-    static async handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        return ErrorHandler.handleAsyncError(async () => {
-            if (file.type !== 'application/json' && !file.name.endsWith('.json')) {
-                throw new Error('请选择JSON文件');
-            }
-
-            UIManager.showMessage('正在处理文件...', 'loading');
-
-            const content = await this.readFile(file);
-            const result = await MessageManager.sendMessage('parseFileContent', { content, fileType: 'json' });
-
-            if (result.success) {
-                AppState.setState({ uploadedJsonData: result.data });
-
-                const jsonDropZone = DOMManager.get('jsonDropZone');
-                if (jsonDropZone) {
-                    jsonDropZone.innerHTML = `
-                        <p>✅ 文件已上传: ${file.name}</p>
-                        <p>Email: ${result.data.email}</p>
-                        <p>User ID: ${result.data.userid}</p>
-                    `;
-                }
-
-                UIManager.showMessage('JSON文件解析成功', 'success');
-            } else {
-                throw new Error(result.error);
-            }
-        }, '文件处理');
-    }
-
-    static readFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = () => reject(new Error('文件读取失败'));
-            reader.readAsText(file);
-        });
-    }
-}
+// 注意：文件上传功能已被移除，现在只支持手动输入和自动读取
 
 // =============================================================================
 // 数据导入管理模块
@@ -1969,58 +1910,15 @@ class DataImportManager {
 
 
 
-    static async handleProcessFiles() {
-        const { uploadedJsonData } = AppState.getState();
-        const accessTokenFile = DOMManager.get('accessTokenFile');
-
-        if (!uploadedJsonData) {
-            UIManager.showMessage('请先上传scope_v3.json文件', 'error');
-            return;
-        }
-
-        const accessToken = accessTokenFile?.value.trim();
-        if (!accessToken) {
-            UIManager.showMessage('请输入Access Token', 'error');
-            return;
-        }
-
-        return ErrorHandler.handleAsyncError(async () => {
-            LoadingManager.show('processFilesBtn', '📋 处理中...');
-
-            const accountData = {
-                email: uploadedJsonData.email,
-                userid: uploadedJsonData.userid,
-                accessToken: accessToken,
-                WorkosCursorSessionToken: `${uploadedJsonData.userid}%3A%3A${accessToken}`,
-                createTime: new Date().toISOString()
-            };
-
-            await this.processAccountData(accountData);
-
-            // 清空文件输入
-            if (accessTokenFile) accessTokenFile.value = '';
-            AppState.clearUploadedData();
-
-            const jsonDropZone = DOMManager.get('jsonDropZone');
-            if (jsonDropZone) {
-                jsonDropZone.innerHTML = `
-                    <p>📄 拖拽 scope_v3.json 文件到这里<br>或点击选择文件</p>
-                `;
-            }
-
-        }, '处理文件数据').finally(() => {
-            LoadingManager.hide('processFilesBtn');
-        });
-    }
+    // handleProcessFiles 函数已移除 - 文件上传功能不再支持
 
     static async handleManualImport() {
         const elements = DOMManager.getAll();
         const email = elements.emailInput?.value.trim();
-        const userid = elements.useridInput?.value.trim();
         const accessToken = elements.accessTokenInput?.value.trim();
 
-        if (!email || !userid || !accessToken) {
-            UIManager.showMessage('请填写所有必需字段', 'error');
+        if (!email || !accessToken) {
+            UIManager.showMessage('请填写邮箱地址和Access Token', 'error');
             return;
         }
 
@@ -2034,19 +1932,32 @@ class DataImportManager {
         return ErrorHandler.handleAsyncError(async () => {
             LoadingManager.show('importDataBtn', '处理中...');
 
+            // 使用JWT解码获取用户ID
+            console.log('🔍 开始使用JWT解码分析手动输入的Token...');
+            const jwtInfo = JWTDecoder.parseToken(accessToken);
+
+            if (!jwtInfo || !jwtInfo.userId) {
+                UIManager.showMessage('❌ 无法从Token中解析用户ID，请检查Token格式是否正确', 'error');
+                return;
+            }
+
+            console.log('✅ 从JWT解码获取的用户ID:', jwtInfo.userId);
+            UIManager.showMessage(`✅ 成功解析用户ID: ${jwtInfo.userId}`, 'success');
+
             const accountData = {
                 email: email,
-                userid: userid,
+                userid: jwtInfo.userId,
                 accessToken: accessToken,
-                WorkosCursorSessionToken: `${userid}%3A%3A${accessToken}`,
-                createTime: new Date().toISOString()
+                WorkosCursorSessionToken: `${jwtInfo.userId}%3A%3A${accessToken}`,
+                createTime: new Date().toISOString(),
+                tokenType: 'client',
+                jwtInfo: jwtInfo // 保存JWT解码信息
             };
 
             await this.processAccountData(accountData);
 
             // 清空输入框
             if (elements.emailInput) elements.emailInput.value = '';
-            if (elements.useridInput) elements.useridInput.value = '';
             if (elements.accessTokenInput) elements.accessTokenInput.value = '';
 
         }, '手动导入').finally(() => {

@@ -988,6 +988,14 @@
             font-weight: 600;
             box-shadow: 0 1px 3px rgba(255, 152, 0, 0.3);
         }
+
+        /* 新增：正常状态的Token样式 */
+        .token-deep {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            font-weight: 500;
+        }
         
         .token-client {
             background: rgba(33, 150, 243, 0.3);
@@ -1110,7 +1118,6 @@
             <div class="collapsible-content">
             <div class="method-tabs">
                 <button class="method-tab active" data-method="auto">🤖 自动读取</button>
-                <button class="method-tab" data-method="file">📁 文件上传</button>
                 <button class="method-tab" data-method="manual">✋ 手动输入</button>
             </div>
             
@@ -1169,32 +1176,7 @@
                 </div>
             </div>
             
-            <!-- 文件上传方法 -->
-            <div class="method-content" id="fileMethod">
-                <div class="file-path-info">
-                    <strong>📁 文件位置：</strong><br>
-                    <strong>macOS:</strong> <span class="code">~/Library/Application Support/Cursor/sentry/scope_v3.json</span><br>
-                    <strong>Windows:</strong> <span class="code">%APPDATA%\Cursor\sentry\scope_v3.json</span>
-                </div>
-                <div class="input-group">
-                    <label>上传 scope_v3.json 文件:</label>
-                    <div class="file-drop-zone" id="jsonDropZone">
-                        <p>📄 拖拽 scope_v3.json 文件到这里<br>或点击选择文件</p>
-                        <input type="file" id="jsonFileInput" class="file-input" accept=".json">
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label for="accessTokenFile">手动输入 Access Token:</label>
-                    <textarea id="accessTokenFile" placeholder="请输入从Cursor数据库中获取的accessToken"></textarea>
-                    <div class="file-path-info">
-                        <strong>💾 数据库位置：</strong><br>
-                        <strong>macOS:</strong> <span class="code">~/Library/Application Support/Cursor/User/globalStorage/state.vscdb</span><br>
-                        <strong>Windows:</strong> <span class="code">%APPDATA%\Cursor\User\globalStorage\state.vscdb</span><br>
-                        <strong>查询SQL:</strong> <span class="code">SELECT value FROM itemTable WHERE key = 'cursorAuth/accessToken';</span>
-                    </div>
-                </div>
-                <button id="processFilesBtn" class="btn-success">📋 处理文件数据</button>
-            </div>
+
             
             <!-- 手动输入方法 -->
             <div class="method-content" id="manualMethod">
@@ -1203,12 +1185,16 @@
                     <input type="email" id="emailInput" placeholder="请输入email地址">
                 </div>
                 <div class="input-group">
-                    <label for="useridInput">User ID:</label>
-                    <input type="text" id="useridInput" placeholder="请输入userid (|符号后的部分)">
-                </div>
-                <div class="input-group">
                     <label for="accessTokenInput">Access Token:</label>
-                    <textarea id="accessTokenInput" placeholder="请输入accessToken"></textarea>
+                    <textarea id="accessTokenInput" placeholder="请输入accessToken（JWT格式）"></textarea>
+                    <div class="file-path-info">
+                        <strong>💾 Token获取方式：</strong><br>
+                        <strong>macOS:</strong> <span class="code">~/Library/Application Support/Cursor/User/globalStorage/storage.json</span><br>
+                        <strong>Windows:</strong> <span class="code">%APPDATA%\Cursor\User\globalStorage\storage.json</span><br>
+                        <strong>Linux:</strong> <span class="code">~/.config/Cursor/User/globalStorage/storage.json</span><br>
+                        在文件中找到 <span class="code">accessToken</span> 字段，复制其值即可。<br>
+                        <em>💡 用户ID将自动从Token中解析，无需手动输入。</em>
+                    </div>
                 </div>
                 <button id="importDataBtn">💾 导入并设置认证</button>
             </div>
