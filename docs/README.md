@@ -10,6 +10,8 @@
 ### 👨‍💻 开发者文档
 - **[🏗️ 项目架构](developer/architecture.md)** - 模块化架构和设计原理
 - **[🧪 测试指南](developer/testing.md)** - 开发测试和Chrome兼容性
+- **[🧠 JWT解码器实现](developer/JWT_DECODER_IMPLEMENTATION.md)** - JWT智能解析功能技术文档
+- **[🎨 UI修改总结](developer/UI_MODIFICATIONS_SUMMARY.md)** - v1.5.0 UI优化和功能改进
 - **[🔐 长效Token开发](developer/long-term-token.md)** - 长效Token功能技术文档
 - **[🔄 Python到JavaScript实现](developer/python-to-javascript-implementation.md)** - 实现对比和技术细节
 - **[🐛 错误修复总结](developer/ERROR_FIX_SUMMARY.md)** - substring错误修复和防御性编程
@@ -38,6 +40,7 @@
 
 | 版本 | 主要文档更新 |
 |------|-------------|
+| v1.5.0 | **JWT智能解析功能文档**、UI修改总结、JWT解码器实现文档、简化使用流程说明 |
 | v1.4.0 | **UI优化功能文档**、Toast通知系统说明、无头模式禁用文档 |
 | v1.3.0 | **长效Token管理功能完整文档**、文档结构优化、重复内容清理 |
 | v1.2.0 | 长效Token功能、测试指南、架构文档、Chrome兼容性解决方案 |

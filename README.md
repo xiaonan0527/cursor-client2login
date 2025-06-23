@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)
 ![Chrome Extension](https://img.shields.io/badge/chrome-extension-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-orange.svg)
@@ -18,12 +18,13 @@
 
 ### 🔥 核心功能
 - **🤖 自动读取** - 智能读取本地Cursor数据库和配置文件
-- **📁 文件上传** - 支持拖拽上传scope_v3.json文件
-- **✋ 手动输入** - 手动填写认证信息
+- **🧠 JWT智能解析** - 自动从JWT Token中提取用户ID和过期时间，无需手动输入
+- **✋ 手动输入** - 简化的手动输入流程，支持JWT自动解析
 - **🔄 多账户管理** - 保存和快速切换多个Cursor账户
 - **🎯 一键登录** - 自动设置Cookie并跳转到Dashboard
 - **🍪 智能Cookie状态验证与恢复** - 实时检测Cookie状态（过期/清除）并提供一键恢复
 - **🔐 长效Token管理** - 支持获取60天有效期的长效Token，解决客户端退出后Token失效问题
+- **📅 智能过期时间显示** - 统一显示具体过期日期，用颜色区分状态（正常/警告/过期）
 - **🔒 CSP安全合规** - 移除内联脚本，完全符合Chrome扩展内容安全策略
 - **🎨 现代化UI体验** - Toast通知系统、可折叠界面、智能滚动条，提供流畅的用户体验
 
@@ -147,29 +148,57 @@ graph TD
 4. 如选择浏览器模式，需在弹出页面点击"Yes, Log In"确认授权
 5. 等待自动提取和设置完成
 
-### 方式二：📁 文件上传
+### 方式二：✋ 手动输入（已优化）
 
-**适用场景**：无法安装原生主机或权限受限
+**适用场景**：无法安装原生主机或需要精确控制
 
-1. 找到配置文件：
-   - **macOS**: `~/Library/Application Support/Cursor/sentry/scope_v3.json`
-   - **Windows**: `%APPDATA%\Cursor\sentry\scope_v3.json`
-2. 拖拽文件到上传区域
-3. 手动输入Access Token
-4. 点击"📋 处理文件数据"
+**🧠 新特性**：JWT智能解析，自动提取用户ID和过期时间
 
-### 方式三：✋ 手动输入
+1. **获取Token文件**：
+   - **macOS**: `~/Library/Application Support/Cursor/User/globalStorage/storage.json`
+   - **Windows**: `%APPDATA%\Cursor\User\globalStorage\storage.json`
+   - **Linux**: `~/.config/Cursor/User/globalStorage/storage.json`
 
-**适用场景**：需要精确控制或调试
+2. **提取Access Token**：
+   - 打开storage.json文件
+   - 找到`accessToken`字段
+   - 复制完整的JWT Token值
 
-1. 手动获取所需数据：
-   - **Email**: 从scope_v3.json提取
-   - **User ID**: 从scope_v3.json的id字段提取
-   - **Access Token**: 从SQLite数据库查询获取
+3. **填写表单**：
+   - **Email地址**：输入你的Cursor账户邮箱
+   - **Access Token**：粘贴JWT Token
+   - **用户ID**：🧠 **自动解析** - 无需手动输入，插件会从JWT中自动提取
 
+4. **智能验证**：
+   - 插件自动验证JWT格式
+   - 自动提取用户ID和过期时间
+   - 显示解析结果供确认
 
-在终端使用下面的命令执行，获取上面的信息，要求执行的目录下一定要有native_host.py文件！！
-```
+### 🧠 JWT智能解析功能
+
+**v1.5.0新特性**：插件现在支持JWT智能解析，大大简化了使用流程
+
+#### 🔍 自动提取信息
+- **用户ID**：从JWT的`sub`字段自动提取（支持`auth0|user_xxx`格式）
+- **过期时间**：从JWT的`exp`字段获取真实过期时间
+- **剩余天数**：自动计算并显示剩余有效天数
+
+#### 🎨 智能状态显示
+- **🟢 正常状态**：剩余天数充足，绿色显示
+- **🟠 警告状态**：剩余7天内，橙色显示
+- **🔴 过期状态**：已过期，红色显示
+
+#### 📅 统一过期时间格式
+所有账户现在统一显示为：`📅 2025年06月17日到期 (剩余60天)`
+
+#### 🛡️ 错误处理
+- JWT格式验证
+- 自动降级到传统方式
+- 详细的错误提示和解决建议
+
+**传统方式获取信息**（仅在需要时使用）：
+```bash
+# 在项目目录下执行
 python3 - <<'PY'
 from native_host import CursorDataManager
 import json, sys
@@ -180,11 +209,10 @@ if "error" in scope:  sys.exit(f"❌ {scope['error']}")
 print(json.dumps({
     "email":       scope["email"],
     "userid":      scope["userid"],
-    "accessToken": token["accessToken"],   # 只显示前 10 位
+    "accessToken": token["accessToken"],
 }, ensure_ascii=False, indent=2))
 PY
 ```
-2. 填写表单并提交
 
 ## 🔄 多账户管理
 
@@ -250,7 +278,7 @@ cursor-client2login/
 ├── MessageManager     // 消息通信
 ├── DashboardManager   // 仪表板管理
 ├── EventManager       // 事件管理
-├── FileManager        // 文件管理
+├── JWTDecoder         // JWT智能解析（v1.5.0新增）
 ├── DataImportManager  // 数据导入管理
 ├── App               // 应用初始化
 └── DebugManager      // 调试工具
@@ -546,7 +574,15 @@ git push origin feature/AmazingFeature
 
 ## 📝 更新日志
 
-### v1.4.0 (当前开发版本)
+### v1.5.0 (当前开发版本)
+- ✅ **JWT智能解析** - 从Token中自动提取用户ID和过期时间，无需手动输入
+- ✅ **UI界面优化** - 统一显示具体过期日期，用颜色区分状态（正常/警告/过期）
+- ✅ **简化输入流程** - 移除UserID输入框，手动输入只需邮箱和Token
+- ✅ **移除文件上传** - 专注于自动读取和手动输入两种核心方式
+- ✅ **智能过期检测** - 实时检测Token过期状态，智能颜色标识
+- ✅ **向后兼容** - 完全兼容现有账户数据和功能，无缝升级
+
+### v1.4.0
 - ✅ **UI体验优化** - 浮动Toast通知系统，避免界面布局跳动
 - ✅ **可折叠导入区域** - 导入数据区域支持折叠，界面更简洁
 - ✅ **智能滚动条** - 已保存账户列表滚动条自动隐藏
@@ -593,6 +629,7 @@ git push origin feature/AmazingFeature
 
 | 版本 | 日期 | 关键更新 |
 |------|------|-----------|
+| 1.5.0 | 2025-06-23 | **🧠 JWT智能解析版本**<br>**JWT自动解析**：从Token中自动提取用户ID和过期时间<br>**UI界面优化**：统一显示具体过期日期，用颜色区分状态<br>**简化输入流程**：移除UserID输入框，通过JWT自动解析<br>**移除文件上传**：专注于自动读取和手动输入两种方式<br>**智能过期检测**：实时检测Token过期状态，智能颜色标识<br>**向后兼容**：完全兼容现有账户数据和功能 |
 | 1.4.0 | 2025-06-14 | **🎨 UI体验优化版本**<br>**Toast通知系统**：浮动通知避免界面布局跳动<br>**可折叠界面**：导入数据区域支持折叠，界面更简洁<br>**智能滚动条**：自动隐藏滚动条，视觉更干净<br>**柔和设计**：降低对比度，提供舒适的视觉体验<br>**无头模式优化**：暂时禁用有问题的功能，保留完整恢复方案 |
 | 1.3.0 | 2025-06-13 | **🔐 长效Token管理版本**<br>**长效Token功能**：支持获取60天有效期的深度Token<br>**混合架构**：background.js + popup.js协同处理Token获取<br>**自动升级**：客户端Token自动转换为长效Token<br>**浏览器模式**：支持用户手动确认授权<br>**文档优化**：重新整理文档结构，删除重复内容 |
 | 1.2.0 | 2025-06-13 | **🚀 重大重构与优化版本**<br>**代码重构**：将1000+行代码重构为12个功能模块<br>**错误处理优化**：实现智能错误分类和用户友好提示<br>**数据库处理增强**：完善连接失败处理和文件权限检查<br>**Chrome兼容性**：解决__pycache__导致的扩展加载问题<br>**测试管理**：智能测试管理器和独立测试环境<br>**用户体验**：加载状态管理和响应式UI反馈 |
