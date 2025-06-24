@@ -663,7 +663,14 @@ class UIManager {
             return;
         }
 
-        const accountsHtml = accounts.map((account, index) => {
+        // 对账户进行排序：1. 正在使用的账户在最上面，2. 按剩余时间从小到大排序
+        const sortedAccounts = this.sortAccountsByPriority(accounts, currentAccount);
+
+        const accountsHtml = sortedAccounts.map((account, sortedIndex) => {
+            // 找到该账户在原始数组中的索引，用于按钮操作
+            const originalIndex = accounts.findIndex(acc =>
+                acc.email === account.email && acc.userid === account.userid
+            );
             const email = account.email || '未知邮箱';
             const userid = account.userid || '未知用户ID';
 
@@ -740,14 +747,14 @@ class UIManager {
             if (isCurrentAccount) {
                 actionButtons = `
                     <span class="current-account-badge">正在使用</span>
-                    <button class="btn-small btn-secondary" data-action="refresh" data-index="${index}">🔄 刷新</button>
-                    <button class="btn-small btn-danger" data-action="delete" data-index="${index}">删除</button>
+                    <button class="btn-small btn-secondary" data-action="refresh" data-index="${originalIndex}">🔄 刷新</button>
+                    <button class="btn-small btn-danger" data-action="delete" data-index="${originalIndex}">删除</button>
                 `;
             } else {
                 actionButtons = `
-                    <button class="btn-small btn-info" data-action="switch" data-index="${index}">切换</button>
-                    <button class="btn-small btn-secondary" data-action="refresh" data-index="${index}">🔄 刷新</button>
-                    <button class="btn-small btn-danger" data-action="delete" data-index="${index}">删除</button>
+                    <button class="btn-small btn-info" data-action="switch" data-index="${originalIndex}">切换</button>
+                    <button class="btn-small btn-secondary" data-action="refresh" data-index="${originalIndex}">🔄 刷新</button>
+                    <button class="btn-small btn-danger" data-action="delete" data-index="${originalIndex}">删除</button>
                 `;
             }
 
@@ -766,6 +773,63 @@ class UIManager {
         }).join('');
 
         accountList.innerHTML = accountsHtml;
+    }
+
+    // 账户排序方法：正在使用的账户在最上面，其他按剩余时间从小到大排序
+    static sortAccountsByPriority(accounts, currentAccount) {
+        console.log('📊 开始对账户列表进行排序...');
+
+        // 为每个账户计算剩余天数
+        const accountsWithDays = accounts.map(account => {
+            const isCurrentAccount = currentAccount &&
+                                   currentAccount.email === account.email &&
+                                   currentAccount.userid === account.userid;
+
+            let remainingDays = Infinity; // 默认为无限大，表示未知过期时间
+
+            // 尝试从expiresTime获取剩余天数
+            if (account.expiresTime) {
+                const expiresDate = new Date(account.expiresTime);
+                const now = new Date();
+                const timeDiff = expiresDate.getTime() - now.getTime();
+                remainingDays = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+            } else if (account.accessToken) {
+                // 尝试从JWT解码获取剩余天数
+                const jwtInfo = JWTDecoder.parseToken(account.accessToken);
+                if (jwtInfo && jwtInfo.expirationInfo) {
+                    remainingDays = jwtInfo.expirationInfo.remainingDays;
+                }
+            }
+
+            return {
+                ...account,
+                isCurrentAccount,
+                remainingDays: remainingDays < 0 ? -1 : remainingDays // 已过期设为-1
+            };
+        });
+
+        // 排序逻辑
+        const sorted = accountsWithDays.sort((a, b) => {
+            // 1. 正在使用的账户永远在最上面
+            if (a.isCurrentAccount && !b.isCurrentAccount) return -1;
+            if (!a.isCurrentAccount && b.isCurrentAccount) return 1;
+
+            // 2. 如果都是或都不是当前账户，按剩余时间排序
+            // 已过期的账户(-1)排在最前面，然后是剩余时间少的
+            if (a.remainingDays === -1 && b.remainingDays !== -1) return -1;
+            if (a.remainingDays !== -1 && b.remainingDays === -1) return 1;
+
+            // 3. 按剩余天数从小到大排序（紧急的在前面）
+            return a.remainingDays - b.remainingDays;
+        });
+
+        console.log('📊 账户排序完成:', sorted.map(acc => ({
+            email: acc.email,
+            isCurrentAccount: acc.isCurrentAccount,
+            remainingDays: acc.remainingDays
+        })));
+
+        return sorted;
     }
 
     // 专门为账户列表设计的加载状态管理
