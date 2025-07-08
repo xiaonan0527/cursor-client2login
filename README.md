@@ -157,14 +157,14 @@ graph TD
 **🧠 新特性**：JWT智能解析，自动提取用户ID和过期时间
 
 1. **获取Token文件**：
-   - **macOS**: `~/Library/Application Support/Cursor/User/globalStorage/storage.json`
-   - **Windows**: `%APPDATA%\Cursor\User\globalStorage\storage.json`
-   - **Linux**: `~/.config/Cursor/User/globalStorage/storage.json`
+   - **macOS**: `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb`
+   - **Windows**: `%APPDATA%\Cursor\User\globalStorage\state.vscdb`
+   - **Linux**: `~/.config/Cursor/User/globalStorage/state.vscdb`
 
 2. **提取Access Token**：
-   - 打开storage.json文件
-   - 找到`accessToken`字段
-   - 复制完整的JWT Token值
+   - 打开state.vscdb数据库文件（SQLite格式）
+   - 在ItemTable表中找到key为`cursorAuth/accessToken`的记录
+   - 复制value字段中的完整JWT Token值
 
 3. **填写表单**：
    - **Email地址**：输入你的Cursor账户邮箱

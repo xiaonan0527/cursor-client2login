@@ -76,10 +76,10 @@ if (daysLeft > 0) {
     <textarea id="accessTokenInput" placeholder="请输入accessToken（JWT格式）"></textarea>
     <div class="file-path-info">
         <strong>💾 Token获取方式：</strong><br>
-        <strong>macOS:</strong> <span class="code">~/Library/Application Support/Cursor/User/globalStorage/storage.json</span><br>
-        <strong>Windows:</strong> <span class="code">%APPDATA%\Cursor\User\globalStorage\storage.json</span><br>
-        <strong>Linux:</strong> <span class="code">~/.config/Cursor/User/globalStorage/storage.json</span><br>
-        在文件中找到 <span class="code">accessToken</span> 字段，复制其值即可。<br>
+        <strong>macOS:</strong> <span class="code">~/Library/Application Support/Cursor/User/globalStorage/state.vscdb</span><br>
+        <strong>Windows:</strong> <span class="code">%APPDATA%\Cursor\User\globalStorage\state.vscdb</span><br>
+        <strong>Linux:</strong> <span class="code">~/.config/Cursor/User/globalStorage\state.vscdb</span><br>
+        在SQLite数据库的ItemTable表中找到key为 <span class="code">cursorAuth/accessToken</span> 的记录，复制value字段的值即可。<br>
         <em>💡 用户ID将自动从Token中解析，无需手动输入。</em>
     </div>
 </div>
