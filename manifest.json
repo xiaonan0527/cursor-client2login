@@ -37,7 +37,7 @@
   
   "web_accessible_resources": [
     {
-      "resources": ["native_host.py", "install_guide.md"],
+      "resources": ["native_host.py", "install_guide.md", "main.html", "check_chrome_permissions.html", "get_extension_id.html"],
       "matches": ["<all_urls>"]
     }
   ]

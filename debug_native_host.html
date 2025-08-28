@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原生主机调试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .debug-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .debug-button:hover {
+            background: #0056b3;
+        }
+        .debug-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .warning { background: #fff3cd; border-color: #ffeaa7; color: #856404; }
+        .info { background: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        .log-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 原生主机连接调试工具</h1>
+    
+    <div class="debug-section">
+        <h2>📊 环境信息</h2>
+        <div id="envInfo"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>🧪 连接测试</h2>
+        <button class="debug-button" onclick="testBasicConnection()">基础连接测试</button>
+        <button class="debug-button" onclick="testGetClientData()">获取客户端数据</button>
+        <button class="debug-button" onclick="testAllActions()">测试所有操作</button>
+        <button class="debug-button" onclick="clearResults()">清空结果</button>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="debug-section">
+        <h2>📋 实时日志</h2>
+        <div id="logContainer" class="log-container"></div>
+        <button class="debug-button" onclick="clearLogs()">清空日志</button>
+    </div>
+
+    <div class="debug-section">
+        <h2>🔍 故障排除指南</h2>
+        <div class="result info">
+<strong>常见问题和解决方案：</strong>
+
+1. <strong>"Failed to start native messaging host"</strong>
+   - 原因：原生主机程序未正确安装或配置
+   - 解决：运行 python3 install_native_host.py install
+
+2. <strong>"Specified native messaging host not found"</strong>
+   - 原因：Chrome找不到原生主机配置
+   - 解决：检查配置文件是否存在于正确位置
+
+3. <strong>"Access denied"</strong>
+   - 原因：原生主机脚本没有执行权限
+   - 解决：chmod +x native_host.py
+
+4. <strong>扩展ID不匹配</strong>
+   - 原因：配置文件中的扩展ID与实际不符
+   - 解决：python3 update_native_host.py [正确的扩展ID]
+
+<strong>当前扩展ID:</strong> <span id="currentExtensionId">正在获取...</span>
+
+<strong>诊断命令:</strong>
+- python3 fix_native_host.py          # 诊断问题
+- python3 fix_native_host.py --fix    # 自动修复
+        </div>
+    </div>
+
+    <script>
+        const NATIVE_HOST_NAME = 'com.cursor.client.manage';
+        
+        // 显示环境信息
+        function showEnvironmentInfo() {
+            const envInfo = document.getElementById('envInfo');
+            const info = {
+                '浏览器': navigator.userAgent,
+                '扩展ID': chrome.runtime.id,
+                '原生主机名': NATIVE_HOST_NAME,
+                'Chrome版本': navigator.appVersion,
+                '时间戳': new Date().toISOString()
+            };
+            
+            let html = '';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<div><strong>${key}:</strong> ${value}</div>`;
+            }
+            
+            envInfo.innerHTML = html;
+            
+            // 更新扩展ID显示
+            document.getElementById('currentExtensionId').textContent = chrome.runtime.id;
+        }
+
+        // 记录日志
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `result ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 显示结果
+        function showResult(message, type = 'info') {
+            const results = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+            results.appendChild(resultDiv);
+            
+            log(message, type);
+        }
+
+        // 发送原生消息的包装函数
+        function sendNativeMessage(message) {
+            return new Promise((resolve, reject) => {
+                log(`发送消息: ${JSON.stringify(message)}`);
+                
+                if (!chrome.runtime.sendNativeMessage) {
+                    const error = '原生消息传递API不可用';
+                    log(error, 'error');
+                    reject(new Error(error));
+                    return;
+                }
+                
+                chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, message, (response) => {
+                    const lastError = chrome.runtime.lastError;
+                    
+                    if (lastError) {
+                        const errorMsg = `原生主机错误: ${lastError.message}`;
+                        log(errorMsg, 'error');
+                        log(`完整错误对象: ${JSON.stringify(lastError)}`, 'error');
+                        reject(new Error(lastError.message));
+                    } else {
+                        log(`收到响应: ${JSON.stringify(response)}`, 'success');
+                        resolve(response);
+                    }
+                });
+            });
+        }
+
+        // 基础连接测试
+        async function testBasicConnection() {
+            showResult('开始基础连接测试...', 'info');
+            
+            try {
+                const response = await sendNativeMessage({ action: 'testConnection' });
+                if (response && response.status === 'success') {
+                    showResult('✅ 基础连接测试成功', 'success');
+                } else {
+                    showResult(`⚠️ 连接响应异常: ${JSON.stringify(response)}`, 'warning');
+                }
+            } catch (error) {
+                showResult(`❌ 基础连接测试失败: ${error.message}`, 'error');
+                
+                // 提供详细的错误分析
+                if (error.message.includes('not found')) {
+                    showResult('💡 建议: 运行 python3 install_native_host.py install', 'warning');
+                } else if (error.message.includes('Access denied')) {
+                    showResult('💡 建议: 检查脚本权限 chmod +x native_host.py', 'warning');
+                } else {
+                    showResult('💡 建议: 运行 python3 fix_native_host.py 进行诊断', 'warning');
+                }
+            }
+        }
+
+        // 测试获取客户端数据
+        async function testGetClientData() {
+            showResult('开始获取客户端数据测试...', 'info');
+            
+            try {
+                const response = await sendNativeMessage({ action: 'getClientCurrentData' });
+                if (response && response.email) {
+                    showResult(`✅ 获取客户端数据成功:
+邮箱: ${response.email}
+用户ID: ${response.userid}
+Token类型: ${response.tokenType || 'unknown'}`, 'success');
+                } else {
+                    showResult(`⚠️ 数据响应异常: ${JSON.stringify(response)}`, 'warning');
+                }
+            } catch (error) {
+                showResult(`❌ 获取客户端数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试所有操作
+        async function testAllActions() {
+            showResult('开始测试所有操作...', 'info');
+            
+            const actions = [
+                'testConnection',
+                'getAccessToken', 
+                'getScopeData',
+                'getClientCurrentData'
+            ];
+            
+            for (const action of actions) {
+                try {
+                    showResult(`测试 ${action}...`, 'info');
+                    const response = await sendNativeMessage({ action });
+                    
+                    if (response && !response.error) {
+                        showResult(`✅ ${action} 成功`, 'success');
+                    } else {
+                        showResult(`⚠️ ${action} 返回错误: ${response?.error || '未知错误'}`, 'warning');
+                    }
+                } catch (error) {
+                    showResult(`❌ ${action} 失败: ${error.message}`, 'error');
+                }
+                
+                // 添加延迟避免过快请求
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            showResult('所有操作测试完成', 'info');
+        }
+
+        // 清空结果
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+        }
+
+        // 清空日志
+        function clearLogs() {
+            document.getElementById('logContainer').innerHTML = '';
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            showEnvironmentInfo();
+            log('原生主机调试工具已初始化');
+        });
+    </script>
+</body>
+</html>

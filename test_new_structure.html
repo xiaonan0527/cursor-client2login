@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新架构测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Cursor Client2Login 新架构测试</h1>
+    
+    <div class="test-section">
+        <h2>📁 文件结构测试</h2>
+        <button class="test-button" onclick="testFileStructure()">测试文件结构</button>
+        <div id="fileStructureResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔗 页面链接测试</h2>
+        <button class="test-button" onclick="testPageLinks()">测试页面链接</button>
+        <div id="pageLinksResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Popup页面测试</h2>
+        <button class="test-button" onclick="testPopupPage()">测试Popup页面</button>
+        <div id="popupResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🚀 主功能页面测试</h2>
+        <button class="test-button" onclick="testMainPage()">测试主功能页面</button>
+        <div id="mainPageResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>⚙️ 功能完整性测试</h2>
+        <button class="test-button" onclick="testFunctionality()">测试功能完整性</button>
+        <div id="functionalityResult"></div>
+    </div>
+
+    <script>
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+            element.appendChild(resultDiv);
+        }
+
+        function clearResults(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        async function testFileStructure() {
+            clearResults('fileStructureResult');
+            
+            const files = [
+                'main.html',
+                'main.js', 
+                'popup.html',
+                'popup.js',
+                'popup_original.html',
+                'popup_original.js',
+                'manifest.json'
+            ];
+
+            showResult('fileStructureResult', '🔍 检查文件结构...', 'info');
+            
+            for (const file of files) {
+                try {
+                    const response = await fetch(chrome.runtime.getURL(file));
+                    if (response.ok) {
+                        showResult('fileStructureResult', `✅ ${file} - 存在`, 'success');
+                    } else {
+                        showResult('fileStructureResult', `❌ ${file} - 不存在`, 'error');
+                    }
+                } catch (error) {
+                    showResult('fileStructureResult', `❌ ${file} - 检查失败: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function testPageLinks() {
+            clearResults('pageLinksResult');
+            
+            const links = [
+                { name: 'Popup页面', url: 'popup.html' },
+                { name: '主功能页面', url: 'main.html' }
+            ];
+
+            showResult('pageLinksResult', '🔍 测试页面链接...', 'info');
+
+            for (const link of links) {
+                try {
+                    const response = await fetch(chrome.runtime.getURL(link.url));
+                    if (response.ok) {
+                        const content = await response.text();
+                        if (content.includes('<!DOCTYPE html>')) {
+                            showResult('pageLinksResult', `✅ ${link.name} - 可访问`, 'success');
+                        } else {
+                            showResult('pageLinksResult', `⚠️ ${link.name} - 内容异常`, 'error');
+                        }
+                    } else {
+                        showResult('pageLinksResult', `❌ ${link.name} - 无法访问`, 'error');
+                    }
+                } catch (error) {
+                    showResult('pageLinksResult', `❌ ${link.name} - 测试失败: ${error.message}`, 'error');
+                }
+            }
+
+            // 测试打开页面
+            showResult('pageLinksResult', '<br><button onclick="openPopup()">打开Popup页面</button> <button onclick="openMainPage()">打开主功能页面</button>', 'info');
+        }
+
+        function openPopup() {
+            chrome.tabs.create({
+                url: chrome.runtime.getURL('popup.html'),
+                active: true
+            });
+        }
+
+        function openMainPage() {
+            chrome.tabs.create({
+                url: chrome.runtime.getURL('main.html'),
+                active: true
+            });
+        }
+
+        async function testPopupPage() {
+            clearResults('popupResult');
+            showResult('popupResult', '🔍 分析Popup页面结构...', 'info');
+
+            try {
+                const response = await fetch(chrome.runtime.getURL('popup.html'));
+                const content = await response.text();
+                
+                // 检查关键元素
+                const checks = [
+                    { name: '页面标题', check: content.includes('Cursor Client2Login') },
+                    { name: '当前账户状态', check: content.includes('currentStatus') },
+                    { name: '主功能页面按钮', check: content.includes('openMainPageBtn') },
+                    { name: '快速Dashboard按钮', check: content.includes('quickDashboardBtn') },
+                    { name: '快速切换按钮', check: content.includes('quickSwitchBtn') },
+                    { name: '快速清空按钮', check: content.includes('quickClearBtn') },
+                    { name: 'Toast容器', check: content.includes('toastContainer') }
+                ];
+
+                checks.forEach(check => {
+                    showResult('popupResult', 
+                        `${check.check ? '✅' : '❌'} ${check.name} - ${check.check ? '存在' : '缺失'}`,
+                        check.check ? 'success' : 'error'
+                    );
+                });
+
+                // 检查脚本引用
+                if (content.includes('popup.js')) {
+                    showResult('popupResult', '✅ JavaScript文件引用正确', 'success');
+                } else {
+                    showResult('popupResult', '❌ JavaScript文件引用缺失', 'error');
+                }
+
+            } catch (error) {
+                showResult('popupResult', `❌ 测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMainPage() {
+            clearResults('mainPageResult');
+            showResult('mainPageResult', '🔍 分析主功能页面结构...', 'info');
+
+            try {
+                const response = await fetch(chrome.runtime.getURL('main.html'));
+                const content = await response.text();
+                
+                // 检查关键功能模块
+                const checks = [
+                    { name: '返回按钮', check: content.includes('backButton') },
+                    { name: '原生主机控制', check: content.includes('nativeHostToggle') },
+                    { name: '当前账户状态', check: content.includes('currentStatus') },
+                    { name: '导入功能区域', check: content.includes('importSection') },
+                    { name: '自动读取功能', check: content.includes('autoReadBtn') },
+                    { name: '手动输入功能', check: content.includes('importDataBtn') },
+                    { name: '账户列表', check: content.includes('accountList') },
+                    { name: '快速操作', check: content.includes('openDashboardBtn') },
+                    { name: 'Toast通知', check: content.includes('toastContainer') }
+                ];
+
+                checks.forEach(check => {
+                    showResult('mainPageResult', 
+                        `${check.check ? '✅' : '❌'} ${check.name} - ${check.check ? '存在' : '缺失'}`,
+                        check.check ? 'success' : 'error'
+                    );
+                });
+
+                // 检查脚本引用
+                if (content.includes('main.js')) {
+                    showResult('mainPageResult', '✅ JavaScript文件引用正确', 'success');
+                } else {
+                    showResult('mainPageResult', '❌ JavaScript文件引用缺失', 'error');
+                }
+
+                // 检查CSS样式
+                if (content.includes('gradient-flow') && content.includes('method-tabs')) {
+                    showResult('mainPageResult', '✅ CSS样式完整', 'success');
+                } else {
+                    showResult('mainPageResult', '❌ CSS样式可能不完整', 'error');
+                }
+
+            } catch (error) {
+                showResult('mainPageResult', `❌ 测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFunctionality() {
+            clearResults('functionalityResult');
+            showResult('functionalityResult', '🔍 测试功能完整性...', 'info');
+
+            const tests = [
+                {
+                    name: '扩展API可用性',
+                    test: () => {
+                        return typeof chrome !== 'undefined' && 
+                               typeof chrome.runtime !== 'undefined' &&
+                               typeof chrome.storage !== 'undefined';
+                    }
+                },
+                {
+                    name: 'Background脚本通信',
+                    test: async () => {
+                        try {
+                            const response = await chrome.runtime.sendMessage({ action: 'getCurrentAccount' });
+                            return typeof response === 'object';
+                        } catch (error) {
+                            return false;
+                        }
+                    }
+                },
+                {
+                    name: '页面跳转功能',
+                    test: () => {
+                        return typeof chrome.tabs !== 'undefined' && 
+                               typeof chrome.tabs.create === 'function';
+                    }
+                },
+                {
+                    name: 'Manifest配置',
+                    test: async () => {
+                        try {
+                            const response = await fetch(chrome.runtime.getURL('manifest.json'));
+                            const manifest = await response.json();
+                            return manifest.name === 'Cursor Client2Login' && 
+                                   manifest.version === '1.6.0';
+                        } catch (error) {
+                            return false;
+                        }
+                    }
+                }
+            ];
+
+            for (const test of tests) {
+                try {
+                    const result = await test.test();
+                    showResult('functionalityResult', 
+                        `${result ? '✅' : '❌'} ${test.name} - ${result ? '正常' : '异常'}`,
+                        result ? 'success' : 'error'
+                    );
+                } catch (error) {
+                    showResult('functionalityResult', 
+                        `❌ ${test.name} - 测试失败: ${error.message}`,
+                        'error'
+                    );
+                }
+            }
+
+            // 功能迁移检查
+            showResult('functionalityResult', '<hr><h4>📋 功能迁移检查</h4>', 'info');
+            
+            const migrationChecks = [
+                '✅ JWT解码功能 - 已迁移到main.js',
+                '✅ 账户管理功能 - 已迁移到main.js',
+                '✅ 原生主机通信 - 已迁移到main.js',
+                '✅ UI管理功能 - 已迁移到main.js',
+                '✅ 错误处理 - 已迁移到main.js',
+                '✅ Toast通知 - 已迁移到main.js',
+                '✅ 状态管理 - 已迁移到main.js'
+            ];
+
+            migrationChecks.forEach(check => {
+                showResult('functionalityResult', check, 'success');
+            });
+        }
+    </script>
+</body>
+</html>

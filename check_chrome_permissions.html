@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrome原生消息传递权限检查工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #007cba;
+            padding-bottom: 5px;
+        }
+        .check-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .status {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .code {
+            background: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        #results {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .success-box {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Chrome原生消息传递权限检查工具</h1>
+        
+        <div class="info-box">
+            <strong>📋 使用说明:</strong><br>
+            此工具可以帮助您检查Chrome扩展的原生消息传递权限和配置。请按顺序执行各项检查。
+        </div>
+
+        <div class="section">
+            <h3>🔐 1. 基础权限检查</h3>
+            <div class="check-item">
+                <strong>检查项目:</strong> Chrome扩展权限
+                <br><button onclick="checkExtensionPermissions()">检查扩展权限</button>
+                <div id="extensionPermissionsResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🔗 2. 原生主机连接测试</h3>
+            <div class="check-item">
+                <strong>检查项目:</strong> 原生主机连接状态
+                <br><button onclick="testNativeHostConnection()">测试原生主机连接</button>
+                <div id="nativeHostResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📋 3. 扩展详细信息</h3>
+            <div class="check-item">
+                <strong>检查项目:</strong> 扩展ID和状态
+                <br><button onclick="getExtensionInfo()">获取扩展信息</button>
+                <div id="extensionInfoResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🧪 4. Chrome API测试</h3>
+            <div class="check-item">
+                <strong>检查项目:</strong> Chrome API可用性
+                <br><button onclick="testChromeAPIs()">测试Chrome API</button>
+                <div id="chromeApiResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📊 5. 系统环境检查</h3>
+            <div class="check-item">
+                <strong>检查项目:</strong> 浏览器和系统信息
+                <br><button onclick="checkSystemInfo()">检查系统信息</button>
+                <div id="systemInfoResult"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📝 综合检查报告</h3>
+            <button onclick="runAllChecks()">🚀 运行所有检查</button>
+            <button onclick="clearResults()">🗑️ 清除结果</button>
+            <div id="results"></div>
+        </div>
+
+        <div class="warning-box">
+            <strong>⚠️ 注意事项:</strong><br>
+            1. 此页面需要在Chrome扩展环境中运行才能获得完整结果<br>
+            2. 某些检查需要扩展具有相应权限<br>
+            3. 如果检查失败，请查看Chrome开发者工具的控制台
+        </div>
+
+        <div class="success-box">
+            <strong>✅ 解决方案:</strong><br>
+            如果发现权限问题，请参考 <span class="code">docs/troubleshooting/</span> 目录中的故障排除指南。
+        </div>
+    </div>
+
+    <script>
+        // 结果显示辅助函数
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            const statusClass = type === 'success' ? 'success' : type === 'error' ? 'error' : 'warning';
+            element.innerHTML = `<div class="status ${statusClass}">${content}</div>`;
+        }
+
+        function appendToResults(content) {
+            const results = document.getElementById('results');
+            results.textContent += content + '\n\n';
+        }
+
+        // 1. 检查扩展权限
+        async function checkExtensionPermissions() {
+            try {
+                appendToResults('=== 检查扩展权限 ===');
+                
+                // 检查是否在扩展环境中
+                if (typeof chrome === 'undefined') {
+                    const error = '❌ 错误: 不在Chrome扩展环境中';
+                    showResult('extensionPermissionsResult', error, 'error');
+                    appendToResults(error);
+                    return;
+                }
+
+                // 检查基本权限
+                const permissions = await chrome.permissions.getAll();
+                appendToResults('当前权限:');
+                appendToResults('- 权限: ' + JSON.stringify(permissions.permissions, null, 2));
+                appendToResults('- 来源: ' + JSON.stringify(permissions.origins, null, 2));
+
+                // 检查关键权限
+                const hasNativeMessaging = permissions.permissions.includes('nativeMessaging');
+                const hasStorage = permissions.permissions.includes('storage');
+                
+                let status = '✅ 权限检查完成\n';
+                status += `- nativeMessaging: ${hasNativeMessaging ? '✅' : '❌'}\n`;
+                status += `- storage: ${hasStorage ? '✅' : '❌'}`;
+                
+                showResult('extensionPermissionsResult', status, hasNativeMessaging ? 'success' : 'error');
+                appendToResults(status);
+                
+            } catch (error) {
+                const errorMsg = '❌ 权限检查失败: ' + error.message;
+                showResult('extensionPermissionsResult', errorMsg, 'error');
+                appendToResults(errorMsg);
+            }
+        }
+
+        // 2. 测试原生主机连接
+        async function testNativeHostConnection() {
+            try {
+                appendToResults('=== 测试原生主机连接 ===');
+                
+                if (typeof chrome === 'undefined' || !chrome.runtime) {
+                    const error = '❌ Chrome runtime API 不可用';
+                    showResult('nativeHostResult', error, 'error');
+                    appendToResults(error);
+                    return;
+                }
+
+                // 测试原生主机连接
+                appendToResults('正在连接原生主机...');
+                
+                const testMessage = {
+                    action: 'test_connection',
+                    timestamp: new Date().toISOString()
+                };
+
+                chrome.runtime.sendNativeMessage(
+                    'com.cursor.client.manage',
+                    testMessage,
+                    (response) => {
+                        if (chrome.runtime.lastError) {
+                            const error = '❌ 原生主机连接失败: ' + chrome.runtime.lastError.message;
+                            showResult('nativeHostResult', error, 'error');
+                            appendToResults(error);
+                            appendToResults('常见原因:');
+                            appendToResults('1. 原生主机未正确安装');
+                            appendToResults('2. Python路径错误');
+                            appendToResults('3. 权限不足');
+                            appendToResults('4. 扩展ID配置错误');
+                        } else {
+                            const success = '✅ 原生主机连接成功';
+                            showResult('nativeHostResult', success + '\n响应: ' + JSON.stringify(response, null, 2), 'success');
+                            appendToResults(success);
+                            appendToResults('响应数据: ' + JSON.stringify(response, null, 2));
+                        }
+                    }
+                );
+
+            } catch (error) {
+                const errorMsg = '❌ 连接测试异常: ' + error.message;
+                showResult('nativeHostResult', errorMsg, 'error');
+                appendToResults(errorMsg);
+            }
+        }
+
+        // 3. 获取扩展信息
+        async function getExtensionInfo() {
+            try {
+                appendToResults('=== 获取扩展信息 ===');
+                
+                if (typeof chrome === 'undefined') {
+                    const error = '❌ Chrome API 不可用';
+                    showResult('extensionInfoResult', error, 'error');
+                    appendToResults(error);
+                    return;
+                }
+
+                // 获取扩展ID
+                const extensionId = chrome.runtime.id;
+                appendToResults('扩展ID: ' + extensionId);
+
+                // 获取manifest信息
+                const manifest = chrome.runtime.getManifest();
+                appendToResults('Manifest版本: ' + manifest.manifest_version);
+                appendToResults('扩展名称: ' + manifest.name);
+                appendToResults('扩展版本: ' + manifest.version);
+
+                // 检查权限配置
+                if (manifest.permissions) {
+                    appendToResults('配置的权限: ' + JSON.stringify(manifest.permissions, null, 2));
+                }
+
+                if (manifest.host_permissions) {
+                    appendToResults('主机权限: ' + JSON.stringify(manifest.host_permissions, null, 2));
+                }
+
+                const info = `✅ 扩展信息获取完成\nID: ${extensionId}\n名称: ${manifest.name}\n版本: ${manifest.version}`;
+                showResult('extensionInfoResult', info, 'success');
+
+            } catch (error) {
+                const errorMsg = '❌ 获取扩展信息失败: ' + error.message;
+                showResult('extensionInfoResult', errorMsg, 'error');
+                appendToResults(errorMsg);
+            }
+        }
+
+        // 4. 测试Chrome API
+        async function testChromeAPIs() {
+            try {
+                appendToResults('=== 测试Chrome API ===');
+                
+                const apis = [
+                    'chrome.runtime',
+                    'chrome.storage',
+                    'chrome.permissions',
+                    'chrome.tabs'
+                ];
+
+                let results = [];
+                for (const api of apis) {
+                    const parts = api.split('.');
+                    let obj = window;
+                    let available = true;
+                    
+                    for (const part of parts) {
+                        if (obj && obj[part]) {
+                            obj = obj[part];
+                        } else {
+                            available = false;
+                            break;
+                        }
+                    }
+                    
+                    results.push(`${api}: ${available ? '✅' : '❌'}`);
+                    appendToResults(`${api}: ${available ? '可用' : '不可用'}`);
+                }
+
+                const summary = 'Chrome API 检查完成:\n' + results.join('\n');
+                showResult('chromeApiResult', summary, 'success');
+
+            } catch (error) {
+                const errorMsg = '❌ API测试失败: ' + error.message;
+                showResult('chromeApiResult', errorMsg, 'error');
+                appendToResults(errorMsg);
+            }
+        }
+
+        // 5. 检查系统信息
+        async function checkSystemInfo() {
+            try {
+                appendToResults('=== 检查系统信息 ===');
+                
+                const info = {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine
+                };
+
+                for (const [key, value] of Object.entries(info)) {
+                    appendToResults(`${key}: ${value}`);
+                }
+
+                // Chrome版本检测
+                const chromeMatch = navigator.userAgent.match(/Chrome\/(\d+)/);
+                if (chromeMatch) {
+                    const chromeVersion = chromeMatch[1];
+                    appendToResults(`Chrome版本: ${chromeVersion}`);
+                    
+                    if (parseInt(chromeVersion) < 88) {
+                        appendToResults('⚠️ Chrome版本可能过旧，建议升级');
+                    }
+                }
+
+                const summary = '✅ 系统信息检查完成';
+                showResult('systemInfoResult', summary, 'success');
+
+            } catch (error) {
+                const errorMsg = '❌ 系统信息检查失败: ' + error.message;
+                showResult('systemInfoResult', errorMsg, 'error');
+                appendToResults(errorMsg);
+            }
+        }
+
+        // 运行所有检查
+        async function runAllChecks() {
+            clearResults();
+            appendToResults('🚀 开始运行所有检查...\n');
+            
+            await checkExtensionPermissions();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testNativeHostConnection();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await getExtensionInfo();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testChromeAPIs();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await checkSystemInfo();
+            
+            appendToResults('✅ 所有检查完成！');
+        }
+
+        // 清除结果
+        function clearResults() {
+            document.getElementById('results').textContent = '';
+            
+            const resultElements = [
+                'extensionPermissionsResult',
+                'nativeHostResult', 
+                'extensionInfoResult',
+                'chromeApiResult',
+                'systemInfoResult'
+            ];
+            
+            resultElements.forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+        }
+
+        // 页面加载时的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            appendToResults('Chrome原生消息传递权限检查工具已就绪\n');
+            appendToResults('请点击各个检查按钮开始诊断\n');
+            appendToResults('=' .repeat(50) + '\n');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor Client2Login</title>
+    <style>
+        /* 动态渐变文字CSS变量定义 */
+        @property --gradient-color-1 {
+            syntax: "<color>";
+            inherits: false;
+            initial-value: hsl(280 100% 70%);
+        }
+
+        @property --gradient-color-2 {
+            syntax: "<color>";
+            inherits: false;
+            initial-value: hsl(200 100% 65%);
+        }
+
+        @property --gradient-color-3 {
+            syntax: "<color>";
+            inherits: false;
+            initial-value: hsl(320 100% 75%);
+        }
+
+        /* 渐变动画关键帧 */
+        @keyframes gradient-flow {
+            0% {
+                --gradient-color-1: hsl(280 100% 70%);
+                --gradient-color-2: hsl(200 100% 65%);
+                --gradient-color-3: hsl(320 100% 75%);
+            }
+            33% {
+                --gradient-color-1: hsl(200 100% 65%);
+                --gradient-color-2: hsl(320 100% 75%);
+                --gradient-color-3: hsl(60 100% 70%);
+            }
+            66% {
+                --gradient-color-1: hsl(320 100% 75%);
+                --gradient-color-2: hsl(60 100% 70%);
+                --gradient-color-3: hsl(180 100% 65%);
+            }
+            100% {
+                --gradient-color-1: hsl(280 100% 70%);
+                --gradient-color-2: hsl(200 100% 65%);
+                --gradient-color-3: hsl(320 100% 75%);
+            }
+        }
+
+        body {
+            width: 350px;
+            height: 450px;
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            height: calc(100% - 32px);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            animation: gradient-flow 4s ease-in-out infinite;
+            background: linear-gradient(
+                45deg in oklch,
+                var(--gradient-color-1),
+                var(--gradient-color-2),
+                var(--gradient-color-3)
+            );
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+            text-align: center;
+            margin: 0 0 25px 0;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        /* 当前状态显示 */
+        .current-status {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 16px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .current-status.no-account {
+            border-color: rgba(255, 193, 7, 0.3);
+            background: rgba(255, 193, 7, 0.05);
+        }
+
+        .current-status.has-account {
+            border-color: rgba(76, 175, 80, 0.3);
+            background: rgba(76, 175, 80, 0.05);
+        }
+
+        .status-icon {
+            font-size: 20px;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.3));
+        }
+
+        .status-info {
+            flex: 1;
+        }
+
+        .status-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+
+        .status-email {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+
+        .status-userid {
+            font-size: 11px;
+            opacity: 0.6;
+        }
+
+        /* 快速操作按钮 */
+        .quick-actions {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .action-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 16px 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+
+        .action-button.primary {
+            background: linear-gradient(45deg, #4CAF50, #66BB6A);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .action-button.primary:hover {
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .action-button.secondary {
+            background: linear-gradient(45deg, #2196F3, #64B5F6);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .action-button.secondary:hover {
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+
+        .action-button.danger {
+            background: linear-gradient(45deg, #f44336, #ef5350);
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+
+        .action-button.danger:hover {
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+        }
+
+        /* 版本信息 */
+        .version-info {
+            text-align: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .version-info .version {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Toast通知 */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            max-width: 250px;
+            word-wrap: break-word;
+            font-size: 12px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .toast.error {
+            border-left: 4px solid #f44336;
+        }
+
+        .toast.info {
+            border-left: 4px solid #2196F3;
+        }
+
+        .toast.warning {
+            border-left: 4px solid #ff9800;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        /* 隐藏元素 */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Cursor Client2Login</h1>
+
+        <!-- 当前账户状态显示 -->
+        <div id="currentStatus" class="current-status no-account">
+            <span class="status-icon">👤</span>
+            <div class="status-info">
+                <div class="status-title">当前账户</div>
+                <div class="status-email">未登录</div>
+                <div class="status-userid">请先导入账户</div>
+            </div>
+        </div>
+
+        <!-- 快速操作 -->
+        <div class="quick-actions">
+            <button class="action-button primary" id="openMainPageBtn">
+                🚀 打开主功能页面
+            </button>
+            
+            <button class="action-button secondary" id="quickDashboardBtn">
+                📊 快速打开Dashboard
+            </button>
+            
+            <button class="action-button" id="quickSwitchBtn">
+                🔄 快速切换账户
+            </button>
+            
+            <button class="action-button danger" id="quickClearBtn">
+                🗑️ 清空数据
+            </button>
+        </div>
+
+        <!-- 版本信息 -->
+        <div class="version-info">
+            <div class="version">v1.6.0</div>
+        </div>
+    </div>
+
+    <!-- Toast通知容器 -->
+    <div id="toastContainer"></div>
+
+    <script>
+        // 简化的Toast通知系统
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            container.appendChild(toast);
+            
+            // 显示动画
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // 自动移除
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => container.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // 加载当前账户状态
+        async function loadCurrentStatus() {
+            try {
+                const response = await chrome.runtime.sendMessage({ action: 'getCurrentAccount' });
+                const currentAccount = response?.currentAccount;
+                
+                const statusElement = document.getElementById('currentStatus');
+                const statusIcon = statusElement.querySelector('.status-icon');
+                const statusTitle = statusElement.querySelector('.status-title');
+                const statusEmail = statusElement.querySelector('.status-email');
+                const statusUserid = statusElement.querySelector('.status-userid');
+                
+                if (currentAccount) {
+                    statusElement.className = 'current-status has-account';
+                    statusIcon.textContent = '✅';
+                    statusTitle.textContent = '当前账户';
+                    statusEmail.textContent = currentAccount.email;
+                    statusUserid.textContent = `ID: ${currentAccount.userid}`;
+                } else {
+                    statusElement.className = 'current-status no-account';
+                    statusIcon.textContent = '👤';
+                    statusTitle.textContent = '当前账户';
+                    statusEmail.textContent = '未登录';
+                    statusUserid.textContent = '请先导入账户';
+                }
+            } catch (error) {
+                console.error('加载当前状态失败:', error);
+            }
+        }
+
+        // 快速操作按钮事件
+        document.getElementById('openMainPageBtn').addEventListener('click', () => {
+            chrome.tabs.create({
+                url: chrome.runtime.getURL('main.html'),
+                active: true
+            });
+        });
+
+        document.getElementById('quickDashboardBtn').addEventListener('click', async () => {
+            try {
+                const response = await chrome.runtime.sendMessage({ action: 'openDashboard' });
+                if (response.success) {
+                    showToast('Dashboard已打开', 'success');
+                } else {
+                    showToast('打开Dashboard失败: ' + response.error, 'error');
+                }
+            } catch (error) {
+                showToast('操作失败: ' + error.message, 'error');
+            }
+        });
+
+        document.getElementById('quickSwitchBtn').addEventListener('click', () => {
+            chrome.tabs.create({
+                url: chrome.runtime.getURL('main.html#accounts'),
+                active: true
+            });
+        });
+
+        document.getElementById('quickClearBtn').addEventListener('click', async () => {
+            if (confirm('确定要清空所有数据吗？此操作不可撤销。')) {
+                try {
+                    await chrome.storage.local.clear();
+                    await chrome.runtime.sendMessage({ action: 'clearCookie' });
+                    showToast('数据已清空', 'success');
+                    loadCurrentStatus();
+                } catch (error) {
+                    showToast('清空数据失败: ' + error.message, 'error');
+                }
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCurrentStatus();
+        });
+    </script>
+</body>
+</html>

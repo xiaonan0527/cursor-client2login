@@ -1,4 +1,4 @@
-#!/Users/user/.pyenv/versions/3.12.2/bin/python3
+#!/usr/bin/env python3
 import json
 import sys
 import struct

@@ -26,7 +26,7 @@
 ### 3. 🔍 检查权限
 确保原生主机文件有执行权限：
 ```bash
-chmod +x /Users/user/python/cursor-local-login/native_host.py
+chmod +x ~/Library/Application\ Support/Google/Chrome/NativeMessagingHosts/native_host.py
 ```
 
 ### 4. 🧪 测试连接

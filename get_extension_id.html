@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>获取Chrome扩展ID</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .success-box {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #005a87;
+        }
+        #extensionId {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196f3;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            border: 2px solid #2196f3;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🆔 获取Chrome扩展ID工具</h1>
+        
+        <div class="info-box">
+            <strong>📋 使用说明:</strong><br>
+            此工具可以自动获取当前Chrome扩展的ID，用于配置原生主机的allowed_origins。
+        </div>
+
+        <div class="warning-box">
+            <strong>⚠️ 重要提醒:</strong><br>
+            当前原生主机配置使用了通配符 <code>chrome-extension://*/</code>，这存在安全风险。<br>
+            建议使用具体的扩展ID来限制访问权限。
+        </div>
+
+        <button onclick="getExtensionId()" style="font-size: 18px; padding: 15px 30px;">🔍 获取扩展ID</button>
+        
+        <div id="result" style="margin-top: 20px;"></div>
+
+        <div id="instructions" style="display: none;">
+            <div class="success-box">
+                <h3>✅ 扩展ID获取成功！</h3>
+                <p><strong>您的扩展ID是:</strong></p>
+                <div id="extensionId"></div>
+            </div>
+
+            <div class="info-box">
+                <h3>🔧 下一步操作:</h3>
+                <p>请使用以下命令更新原生主机配置:</p>
+                <div class="code" id="updateCommand"></div>
+                <button onclick="copyCommand()">📋 复制命令</button>
+            </div>
+
+            <div class="info-box">
+                <h3>📋 手动检查方法:</h3>
+                <p>您也可以通过以下方式手动获取扩展ID:</p>
+                <ol>
+                    <li>打开 <code>chrome://extensions/</code></li>
+                    <li>启用"开发者模式"</li>
+                    <li>找到"Cursor Client2Login"扩展</li>
+                    <li>复制显示的扩展ID</li>
+                </ol>
+            </div>
+
+            <div class="warning-box">
+                <h3>⚠️ 配置更新后请记得:</h3>
+                <ol>
+                    <li>完全重启Chrome浏览器</li>
+                    <li>重新加载扩展</li>
+                    <li>测试原生主机连接</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function getExtensionId() {
+            try {
+                if (typeof chrome === 'undefined' || !chrome.runtime) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="warning-box">
+                            <strong>❌ 错误:</strong> 此页面需要在Chrome扩展环境中运行。<br><br>
+                            <strong>解决方法:</strong><br>
+                            1. 确保扩展已安装并启用<br>
+                            2. 通过扩展的popup或其他页面打开此工具<br>
+                            3. 或者手动获取扩展ID: <code>chrome://extensions/</code>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 获取扩展ID
+                const extensionId = chrome.runtime.id;
+                
+                if (extensionId) {
+                    // 显示扩展ID
+                    document.getElementById('extensionId').textContent = extensionId;
+                    
+                    // 生成更新命令
+                    const command = `python3 update_native_host.py ${extensionId}`;
+                    document.getElementById('updateCommand').textContent = command;
+                    
+                    // 显示说明
+                    document.getElementById('instructions').style.display = 'block';
+                    document.getElementById('result').innerHTML = '';
+
+                    // 同时提供一些额外信息
+                    const manifest = chrome.runtime.getManifest();
+                    console.log('扩展信息:', {
+                        id: extensionId,
+                        name: manifest.name,
+                        version: manifest.version,
+                        manifestVersion: manifest.manifest_version
+                    });
+
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <div class="warning-box">
+                            <strong>❌ 无法获取扩展ID</strong><br>
+                            请确保在正确的扩展环境中运行此工具。
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="warning-box">
+                        <strong>❌ 获取扩展ID时发生错误:</strong><br>
+                        ${error.message}<br><br>
+                        请尝试手动获取: <code>chrome://extensions/</code>
+                    </div>
+                `;
+                console.error('获取扩展ID错误:', error);
+            }
+        }
+
+        function copyCommand() {
+            const command = document.getElementById('updateCommand').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                alert('✅ 命令已复制到剪贴板！');
+            }).catch(err => {
+                console.error('复制失败:', err);
+                // 备用复制方法
+                const textArea = document.createElement('textarea');
+                textArea.value = command;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('✅ 命令已复制到剪贴板！');
+            });
+        }
+
+        // 页面加载时自动尝试获取
+        document.addEventListener('DOMContentLoaded', () => {
+            // 稍微延迟一下，确保Chrome API已准备好
+            setTimeout(() => {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+                    getExtensionId();
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

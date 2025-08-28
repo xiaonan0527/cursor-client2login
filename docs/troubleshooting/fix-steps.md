@@ -39,8 +39,8 @@
 ## 📋 当前配置状态
 - **扩展ID**: `abcdefghijklmnopqrstuvwxyz123456`
 - **原生主机名**: `com.cursor.client.manage`
-- **配置文件位置**: `/Users/user/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.cursor.client.manage.json`
-- **原生主机程序**: `/Users/user/python/cursor-local-login/native_host.py`
+- **配置文件位置**: `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.cursor.client.manage.json`
+- **原生主机程序**: `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/native_host.py`
 - **程序状态**: ✅ 工作正常，可以读取Cursor数据
 
 ## 🆘 如果问题持续
